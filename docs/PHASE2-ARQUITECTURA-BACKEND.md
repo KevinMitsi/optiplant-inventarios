@@ -395,9 +395,9 @@ hacer cuando algo falla** (`verifyNoInteractions`, `verify(..., never())`).
 
 ### Pendiente
 
-- [ ] **Seguridad real** — `SecurityConfig` está en modo permisivo provisional y **no debe
-      desplegarse fuera de un entorno local**. Falta JWT, filtro y autorización por rol y
-      sucursal (EP-01, RF-01, RF-02, RN-12, RN-13).
+- [x] ~~**Seguridad real**~~ — **completado en la Fase 3**. Ver `PHASE3-SEGURIDAD.md`:
+      JWT, filtro de autenticación, autorización por rol y sucursal, y arranque del
+      administrador inicial. `SecurityConfig` ya no está en modo permisivo.
 - [ ] Catálogo: `Category`, `Product`, `UnitOfMeasure`, `ProductUnit`
 - [ ] Inventario: `Inventory`, `InventoryMovement` ← **el núcleo del dominio (RN-04)**
 - [ ] Compras, ventas, transferencias, logística, analítica, alertas

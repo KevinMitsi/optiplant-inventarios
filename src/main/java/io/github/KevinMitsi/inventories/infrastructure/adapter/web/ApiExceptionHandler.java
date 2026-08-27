@@ -285,6 +285,8 @@ public class ApiExceptionHandler {
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case DUPLICATE_RESOURCE, CONCURRENT_MODIFICATION -> HttpStatus.CONFLICT;
             case OPERATION_NOT_PERMITTED -> HttpStatus.FORBIDDEN;
+            // 401 y no 403: no se ha podido establecer quién realiza la petición.
+            case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
             // 422 y no 400: la petición está bien formada, lo que falla es su coherencia.
             case BUSINESS_RULE_VIOLATION, INSUFFICIENT_STOCK,
                  INVALID_STATE_TRANSITION, VALIDATION_ERROR -> HttpStatus.UNPROCESSABLE_ENTITY;

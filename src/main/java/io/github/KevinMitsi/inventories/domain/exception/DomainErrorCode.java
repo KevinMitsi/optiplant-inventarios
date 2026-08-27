@@ -31,6 +31,15 @@ public enum DomainErrorCode {
     /** El rol del solicitante no le autoriza a operar sobre ese ámbito (RN-12, RN-13). */
     OPERATION_NOT_PERMITTED,
 
+    /**
+     * No se ha podido establecer quién realiza la petición: credenciales incorrectas,
+     * token ausente, manipulado o caducado.
+     *
+     * <p>Se distingue de {@link #OPERATION_NOT_PERMITTED}: aquí no sabemos quién pregunta,
+     * allí lo sabemos y no le corresponde. Uno se traduce a 401 y el otro a 403.
+     */
+    AUTHENTICATION_FAILED,
+
     /** Los datos de entrada son inconsistentes entre sí más allá de la validación de formato. */
     VALIDATION_ERROR
 }
