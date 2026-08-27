@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/${POSTGRES_DB:mydatabase}?reWriteBatchedInserts=true
+    username: ${POSTGRES_USER:myuser}
+    password: ${POSTGRES_PASSWORD:secret}
+  docker:
+    compose:
+      enabled: false        # dentro del contenedor la base ya la levanta el propio compose
+
+logging:
+  level:
+    io.github.KevinMitsi.inventories: INFO
