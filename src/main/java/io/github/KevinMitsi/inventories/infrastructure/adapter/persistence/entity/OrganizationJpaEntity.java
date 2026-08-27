@@ -4,25 +4,20 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-import java.time.Instant;
 import java.util.UUID;
 
-/** Representación persistente de una organización. Solo estado y mapeo; la lógica vive en el dominio. */
 @Entity
 @Table(name = "organization")
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class OrganizationJpaEntity {
+@SuperBuilder
+@NoArgsConstructor
+public class OrganizationJpaEntity extends AuditableJpaEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -42,12 +37,6 @@ public class OrganizationJpaEntity {
 
     @Column(name = "active", nullable = false)
     private boolean active;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     @Override
     public boolean equals(Object other) {

@@ -33,32 +33,17 @@ import java.util.UUID;
 /**
  * Traduce cualquier excepción que escape de un controlador a {@link ApiErrorResponse}.
  *
- * <p>Vive en el adaptador web y no en la capa de aplicación a propósito: es el único punto
- * del sistema que conoce a la vez el vocabulario del dominio y el de HTTP. Gracias a eso
- * los servicios lanzan excepciones de negocio sin saber que existe un código 409, y el
- * dominio permanece libre de dependencias de Spring.
+ * <p>Es el único punto que conoce a la vez el vocabulario del dominio y el de HTTP, lo que
+ * permite que los servicios lancen excepciones de negocio sin saber que existe un 409.
  *
- * <p>Reglas que sostiene:
- * <ul>
- *   <li><b>Nunca filtra detalles internos</b> (RNF-03). Un fallo no previsto se registra
- *       completo en el servidor y al cliente solo le llega un mensaje genérico más un
- *       identificador de correlación con el que el equipo puede localizar la traza.</li>
- *   <li><b>Nunca devuelve el valor rechazado de un campo sensible.</b> Una contraseña
- *       inválida no puede acabar reflejada en el cuerpo de la respuesta.</li>
- *   <li><b>Un solo formato de error</b> para toda la API, de modo que el cliente escriba
- *       un único manejador.</li>
- * </ul>
+ * <p>Nunca filtra detalles internos ni el valor rechazado de un campo sensible (RNF-03).
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
-    /**
-     * Campos cuyo valor jamás se devuelve al cliente aunque falle su validación.
-     * La comparación es por coincidencia parcial y sin distinguir mayúsculas, para
-     * cubrir variantes como {@code currentPassword} o {@code newPasswordConfirmation}.
-     */
+    /** Coincidencia parcial e insensible a mayúsculas, para cubrir {@code currentPassword} y similares. */
     private static final Set<String> SENSITIVE_FIELDS =
             Set.of("password", "passwordhash", "token", "secret", "credential", "authorization");
 
@@ -71,11 +56,8 @@ public class ApiExceptionHandler {
     // -----------------------------------------------------------------------------------
 
     /**
-     * Punto de entrada de todos los fallos de negocio.
-     *
-     * <p>El estado HTTP se deduce del {@link DomainErrorCode}, no del tipo concreto de la
-     * excepción. Así, añadir una excepción nueva que reutilice un código existente no
-     * obliga a tocar este manejador.
+     * El estado HTTP se deduce del {@link DomainErrorCode} y no del tipo concreto, así que
+     * una excepción nueva que reutilice un código existente no obliga a tocar esta clase.
      */
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ApiErrorResponse> handleDomain(DomainException exception,
@@ -205,14 +187,8 @@ public class ApiExceptionHandler {
     // -----------------------------------------------------------------------------------
 
     /**
-     * Choque contra una restricción de la base de datos.
-     *
-     * <p>Los servicios validan la unicidad antes de escribir, pero entre esa comprobación y
-     * el INSERT cabe otra transacción. El índice único es la garantía real y este manejador
-     * es su red de seguridad, no la validación principal.
-     *
-     * <p>El mensaje del driver se registra pero nunca se devuelve: contiene nombres de
-     * tablas, columnas y restricciones que describen el esquema interno.
+     * Red de seguridad frente a dos escrituras concurrentes que pasen la validación previa.
+     * El mensaje del driver se registra pero nunca se devuelve: describe el esquema interno.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException exception,
@@ -252,12 +228,8 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * Red de seguridad final.
-     *
-     * <p>Si la ejecución llega aquí hay un fallo no contemplado. Se registra íntegro en el
-     * servidor y al cliente solo le llega un mensaje genérico con el identificador de
-     * correlación: la traza puede contener rutas de ficheros, consultas y datos de otros
-     * usuarios (RNF-03).
+     * Fallo no contemplado. Se registra íntegro en el servidor y al cliente solo le llega un
+     * mensaje genérico: la traza puede contener rutas, consultas y datos de otros usuarios.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception,
@@ -274,12 +246,6 @@ public class ApiExceptionHandler {
     // Apoyo
     // -----------------------------------------------------------------------------------
 
-    /**
-     * Correspondencia entre el vocabulario del dominio y el de HTTP.
-     *
-     * <p>Es el único lugar donde se decide qué número acompaña a cada clase de fallo,
-     * de modo que la respuesta sea coherente en toda la API.
-     */
     private HttpStatus toHttpStatus(DomainErrorCode errorCode) {
         return switch (errorCode) {
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;

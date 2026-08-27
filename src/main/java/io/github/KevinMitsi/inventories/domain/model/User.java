@@ -10,15 +10,12 @@ import java.util.UUID;
 /**
  * Usuario del sistema.
  *
- * <p>Además de ser una ficha de acceso, es el sujeto de la trazabilidad: todo movimiento de
- * inventario registra quién lo provocó (RN-11), así que sin usuario no hay histórico
- * auditable. Y es también el portador del ámbito de autorización, porque el par
- * (rol, sucursal) determina sobre qué puede operar (RN-12, RN-13).
+ * <p>Es el sujeto de la trazabilidad —todo movimiento registra quién lo provocó (RN-11)— y
+ * el portador del ámbito de autorización, ya que el par (rol, sucursal) determina sobre qué
+ * puede operar (RN-12, RN-13).
  *
- * <p>La contraseña se guarda exclusivamente como hash. El dominio la trata como un dato
- * opaco: no la interpreta, no la compara y no sabe con qué algoritmo se generó. Comparar y
- * generar hashes es trabajo de un puerto de salida, lo que mantiene BCrypt fuera del
- * dominio y permite cambiarlo sin tocar una regla de negocio.
+ * <p>La contraseña es un dato opaco: el dominio no la interpreta ni sabe con qué algoritmo
+ * se generó su hash. Cifrar y verificar es trabajo de un puerto de salida.
  */
 public final class User {
 
@@ -131,11 +128,9 @@ public final class User {
     }
 
     /**
-     * Indica si el usuario puede consultar el inventario de una sucursal.
-     *
-     * <p>La lectura está abierta a toda la organización a propósito: es la capacidad que
-     * permite localizar mercancía en la red antes de solicitar una transferencia (HU-06,
-     * RF-06). La restricción por sucursal se aplica a la escritura, no a la consulta.
+     * La lectura está abierta a toda la organización: es lo que permite localizar mercancía
+     * en la red antes de solicitar una transferencia (HU-06). La restricción por sucursal
+     * aplica a la escritura, no a la consulta.
      */
     public boolean canViewBranch(UUID targetBranchId) {
         return active && targetBranchId != null;
@@ -187,11 +182,8 @@ public final class User {
     }
 
     /**
-     * Registra un acceso correcto.
-     *
-     * <p>No invoca {@code touch()}: iniciar sesión no modifica la ficha del usuario, y
-     * mezclar ambas marcas impediría distinguir "cuándo se editó este usuario" de "cuándo
-     * entró por última vez".
+     * No invoca {@code touch()}: iniciar sesión no modifica la ficha, y mezclar ambas marcas
+     * impediría distinguir cuándo se editó el usuario de cuándo entró por última vez.
      */
     public void recordSuccessfulLogin() {
         this.lastLoginAt = Instant.now();
@@ -258,14 +250,11 @@ public final class User {
     }
 
     /**
-     * Normaliza el correo a minúsculas.
-     *
-     * <p>Sin esto, {@code Ana@empresa.com} y {@code ana@empresa.com} serían cuentas
+     * Normaliza a minúsculas: sin ello, dos escrituras del mismo correo serían cuentas
      * distintas para el índice único y la misma persona para quien intenta entrar.
      *
-     * <p>La comprobación de formato es deliberadamente laxa: validar direcciones de correo
-     * con expresiones regulares estrictas rechaza direcciones legítimas. La validación
-     * seria de una dirección es enviarle un mensaje.
+     * <p>La comprobación de formato es laxa a propósito; las expresiones regulares estrictas
+     * rechazan direcciones legítimas.
      */
     private static String requireEmail(String email) {
         if (email == null || email.isBlank()) {
@@ -337,12 +326,7 @@ public final class User {
         return email;
     }
 
-    /**
-     * Hash de la contraseña.
-     *
-     * <p>Solo debe consumirlo el puerto que verifica credenciales. Jamás se incluye en un
-     * DTO de respuesta, en un log ni en un mensaje de error (RNF-03).
-     */
+    /** Solo lo consume el puerto que verifica credenciales. Nunca sale en una respuesta. */
     public String getPasswordHash() {
         return passwordHash;
     }

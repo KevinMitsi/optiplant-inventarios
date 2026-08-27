@@ -17,26 +17,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Adaptador de salida que satisface {@link BranchRepositoryPort} con JPA.
- *
- * <p>Es la pieza que cierra la inversión de dependencias: la aplicación declaró qué
- * necesita, y esta clase lo resuelve con la tecnología concreta. Su responsabilidad se
- * limita a traducir —de tipos de dominio a entidades y de vuelta, de {@code PageQuery} a
- * {@code Pageable}— sin tomar ninguna decisión de negocio. Cualquier regla que apareciera
- * aquí estaría en el sitio equivocado.
- */
+/** Adaptador de salida que satisface {@link BranchRepositoryPort} con JPA. */
 @Component
 @RequiredArgsConstructor
 public class BranchPersistenceAdapter implements BranchRepositoryPort {
 
-    /**
-     * Campos por los que se admite ordenar.
-     *
-     * <p>El nombre llega desde un parámetro de la petición y termina dentro de una consulta,
-     * así que se contrasta contra esta lista en lugar de confiar en él. Son además los
-     * campos con sentido de negocio para ordenar un listado de sucursales.
-     */
     private static final Set<String> SORTABLE_FIELDS =
             Set.of("code", "name", "city", "active", "createdAt", "updatedAt");
 

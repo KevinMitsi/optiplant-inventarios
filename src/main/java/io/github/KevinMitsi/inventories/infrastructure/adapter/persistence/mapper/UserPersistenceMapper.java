@@ -10,15 +10,10 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
 /**
- * Traduce entre {@link User} y su entidad persistente, y entre {@link Role} y la suya.
+ * Traduce entre {@link User} y su entidad persistente.
  *
- * <p>Ambas direcciones se escriben a mano porque los tipos de dominio no tienen
- * constructores públicos ni asignadores: se construyen por sus factorías, que revalidan los
- * invariantes. Esa revalidación es deseable, y un mapeo por reflexión se la saltaría.
- *
- * <p>La conversión del rol merece atención: en la base es una cadena y en el dominio un
- * enum. {@link RoleCode#fromString} rechaza cualquier valor desconocido, de modo que un dato
- * corrupto o manipulado se detecta al leerlo y no cuando alguien intente decidir permisos
+ * <p>{@link RoleCode#fromString} rechaza cualquier código desconocido, de modo que un rol
+ * corrupto o manipulado en la base se detecta al leerlo y no cuando alguien decida permisos
  * con él.
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,

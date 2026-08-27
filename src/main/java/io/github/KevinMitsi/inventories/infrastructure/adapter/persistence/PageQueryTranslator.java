@@ -11,31 +11,16 @@ import org.springframework.data.domain.Sort;
 import java.util.Set;
 import java.util.function.Function;
 
-/**
- * Puente entre la paginación del dominio y la de Spring Data.
- *
- * <p>Existe para que {@code PageQuery} y {@code PageResult} puedan seguir siendo tipos
- * propios sin que cada adaptador repita la conversión. Al concentrarla aquí, cambiar de
- * tecnología de persistencia significa reescribir esta clase y nada más.
- */
+/** Puente entre la paginación del dominio y la de Spring Data. */
 public final class PageQueryTranslator {
 
     private PageQueryTranslator() {
     }
 
     /**
-     * Convierte a {@link Pageable} validando el campo de ordenación contra una lista blanca.
-     *
-     * <p>La validación no es cosmética. El nombre del campo llega desde un parámetro de la
-     * petición y acaba dentro de una consulta; aceptarlo sin filtrar permitiría ordenar por
-     * columnas que no deberían ser visibles, o provocar un error en ejecución con un nombre
-     * inexistente. La lista blanca la define cada adaptador, que es quien sabe qué campos
-     * tienen índice y sentido de negocio.
-     *
-     * @param pageQuery      paginación pedida
-     * @param sortableFields nombres de propiedad admitidos para ordenar
-     * @param defaultSort    campo por el que ordenar si no se indicó ninguno
-     * @throws DomainValidationException si se pide ordenar por un campo no admitido
+     * @param sortableFields lista blanca de campos ordenables. El nombre llega desde un
+     *                       parámetro de la petición y acaba dentro de una consulta, así que
+     *                       se contrasta en lugar de confiar en él.
      */
     public static Pageable toPageable(PageQuery pageQuery, Set<String> sortableFields, String defaultSort) {
         if (!pageQuery.isSorted()) {
@@ -56,10 +41,6 @@ public final class PageQueryTranslator {
         return PageRequest.of(pageQuery.page(), pageQuery.size(), sort);
     }
 
-    /**
-     * Convierte una página de Spring Data en {@link PageResult}, aplicando el mapeo de cada
-     * elemento a su tipo de dominio.
-     */
     public static <E, D> PageResult<D> toPageResult(Page<E> page, Function<E, D> toDomain) {
         return new PageResult<>(
                 page.getContent().stream().map(toDomain).toList(),

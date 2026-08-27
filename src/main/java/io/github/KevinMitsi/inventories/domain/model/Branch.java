@@ -3,28 +3,19 @@ package io.github.KevinMitsi.inventories.domain.model;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Sucursal de la organización.
  *
- * <p>Es un modelo de dominio puro: no conoce JPA, ni Jackson, ni Spring. La clase que
- * habla con la base de datos es {@code BranchJpaEntity}, en el adaptador de persistencia,
- * y un mapeador traduce entre ambas. Esa separación tiene un coste real —dos clases y un
- * mapeador por agregado— y compra dos cosas concretas: que las reglas de negocio se puedan
- * probar sin levantar contexto de Spring ni contenedor de base de datos, y que un cambio
- * de esquema no arrastre cambios en el dominio.
+ * <p>Es la unidad de autonomía operativa: el stock, las ventas, las compras y los extremos
+ * de una transferencia pertenecen siempre a una sucursal concreta (RN-02). También delimita
+ * la autorización (RN-12, RN-13).
  *
- * <p>La sucursal es la unidad de autonomía operativa del sistema: el stock, las ventas, las
- * compras y los extremos de una transferencia pertenecen siempre a una sucursal concreta
- * (RN-02). También delimita la autorización, porque un gerente opera dentro de la suya
- * mientras que el administrador general las ve todas (RN-12, RN-13).
- *
- * <p>Los invariantes se comprueban en el constructor, de modo que no existe forma de
- * obtener una instancia en estado inválido. La identidad —{@code id}, {@code organizationId},
- * {@code code}, {@code createdAt}— es inmutable; lo demás cambia a través de métodos con
- * nombre de intención, nunca por medio de asignadores genéricos.
+ * <p>El código es inmutable una vez creada: aparece en números de documento y referencias
+ * operativas, así que cambiarlo rompería la trazabilidad de lo ya registrado.
  */
 public final class Branch {
 
@@ -36,15 +27,7 @@ public final class Branch {
 
     private final UUID id;
     private final UUID organizationId;
-
-    /**
-     * Código de negocio de la sucursal, único dentro de su organización.
-     *
-     * <p>Es inmutable una vez creada: aparece en números de documento y en referencias
-     * operativas, así que cambiarlo rompería la trazabilidad de lo ya registrado.
-     */
     private final String code;
-
     private final Instant createdAt;
 
     private String name;
@@ -80,14 +63,6 @@ public final class Branch {
         this.updatedAt = Objects.requireNonNull(updatedAt, "La fecha de actualización no puede ser nula.");
     }
 
-    /**
-     * Crea una sucursal nueva.
-     *
-     * <p>Nace activa: registrarla ya implica la intención de operar con ella. El
-     * identificador se genera aquí y no en la base de datos porque con UUID el dominio
-     * puede construir el agregado completo, relacionarlo y publicarlo antes de que exista
-     * ninguna fila, sin depender de un valor que solo llega tras el INSERT.
-     */
     public static Branch create(UUID organizationId,
                                 String code,
                                 String name,
@@ -101,12 +76,8 @@ public final class Branch {
     }
 
     /**
-     * Reconstruye una sucursal ya persistida.
-     *
-     * <p>Lo usa exclusivamente el adaptador de persistencia al leer de la base. Se distingue
-     * de {@link #create} porque no genera identificador ni marcas de tiempo: respeta los
-     * que ya existen. Sigue validando los invariantes, de modo que un dato corrupto en la
-     * base se detecta al cargarlo y no varias operaciones más tarde.
+     * Reconstruye una sucursal ya persistida. Sigue validando los invariantes, de modo que un
+     * dato corrupto en la base se detecta al cargarlo.
      */
     public static Branch reconstitute(UUID id,
                                       UUID organizationId,
@@ -123,11 +94,6 @@ public final class Branch {
                 countryCode, phone, active, createdAt, updatedAt);
     }
 
-    // ----------------------------------------------------------------------------------
-    // Comportamiento
-    // ----------------------------------------------------------------------------------
-
-    /** Cambia los datos descriptivos. El código y la organización no se tocan nunca. */
     public void updateDetails(String name,
                               String addressLine,
                               String city,
@@ -141,16 +107,7 @@ public final class Branch {
         touch();
     }
 
-    /**
-     * Da de baja la sucursal.
-     *
-     * <p>Es baja lógica y no borrado físico (ENTITIES.md §30): la sucursal aparece en
-     * ventas, compras, movimientos y transferencias históricas, y eliminarla dejaría ese
-     * histórico sin poder explicarse. Una sucursal inactiva deja de admitir operaciones
-     * nuevas, pero sus registros pasados siguen siendo consultables.
-     *
-     * <p>Es idempotente: desactivar algo ya desactivado no es un error.
-     */
+    /** Baja lógica: la sucursal aparece en el histórico y eliminarla lo dejaría sin explicar. */
     public void deactivate() {
         if (!active) {
             return;
@@ -159,7 +116,6 @@ public final class Branch {
         touch();
     }
 
-    /** Reactiva una sucursal dada de baja. Idempotente. */
     public void activate() {
         if (active) {
             return;
@@ -168,12 +124,6 @@ public final class Branch {
         touch();
     }
 
-    /**
-     * Indica si la sucursal admite operaciones que modifiquen inventario.
-     *
-     * <p>Lo consultan los servicios de venta, compra y transferencia antes de registrar
-     * nada: una sucursal inactiva puede consultarse, pero no puede mover mercancía.
-     */
     public boolean canOperate() {
         return active;
     }
@@ -182,17 +132,12 @@ public final class Branch {
         this.updatedAt = Instant.now();
     }
 
-    // ----------------------------------------------------------------------------------
-    // Validación de invariantes
-    // ----------------------------------------------------------------------------------
-
+    /** Se normaliza a mayúsculas para que la unicidad no dependa de cómo se escribiera. */
     private static String requireCode(String code) {
         if (code == null || code.isBlank()) {
             throw new DomainValidationException("code", "El código de la sucursal es obligatorio.");
         }
-        // Se normaliza a mayúsculas para que la unicidad por organización no dependa de
-        // cómo lo escribiera quien creó el registro.
-        String normalized = code.trim().toUpperCase(java.util.Locale.ROOT);
+        String normalized = code.trim().toUpperCase(Locale.ROOT);
         if (normalized.length() > CODE_MAX_LENGTH) {
             throw new DomainValidationException("code",
                     "El código de la sucursal no puede superar %d caracteres.".formatted(CODE_MAX_LENGTH));
@@ -216,8 +161,7 @@ public final class Branch {
         if (countryCode == null || countryCode.isBlank()) {
             return null;
         }
-        String normalized = countryCode.trim().toUpperCase(java.util.Locale.ROOT);
-        // La columna es CHAR(2): el código ISO 3166-1 alfa-2, como CO, MX o ES.
+        String normalized = countryCode.trim().toUpperCase(Locale.ROOT);
         if (normalized.length() != 2) {
             throw new DomainValidationException("countryCode",
                     "El código de país debe tener exactamente 2 caracteres (ISO 3166-1 alfa-2).");
@@ -236,10 +180,6 @@ public final class Branch {
         }
         return normalized;
     }
-
-    // ----------------------------------------------------------------------------------
-    // Accesores
-    // ----------------------------------------------------------------------------------
 
     public UUID getId() {
         return id;
@@ -285,13 +225,7 @@ public final class Branch {
         return updatedAt;
     }
 
-    /**
-     * Igualdad por identidad, no por atributos.
-     *
-     * <p>Dos instancias con el mismo {@code id} son la misma sucursal aunque una tenga el
-     * nombre ya modificado y la otra no. Es la semántica propia de una entidad, frente a
-     * la de un objeto de valor como {@link Quantity}, que sí compara por contenido.
-     */
+    /** Igualdad por identidad: dos instancias con el mismo id son la misma sucursal. */
     @Override
     public boolean equals(Object other) {
         if (this == other) {

@@ -7,12 +7,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -20,32 +18,18 @@ import java.util.UUID;
 /**
  * Representación persistente de un usuario.
  *
- * <p>Se llama {@code app_user} porque {@code user} es palabra reservada en PostgreSQL.
- *
- * <p><b>Por qué el rol sí es {@code @ManyToOne} y la organización no.</b> La regla general
- * del proyecto es referenciar por identificador entre agregados, y así se hace con
- * {@code organizationId} y {@code branchId}. El rol es la excepción, por dos motivos:
- * <ul>
- *   <li>No es un agregado con ciclo de vida propio, sino un <b>catálogo cerrado de tres
- *       filas</b> que nunca cambia en ejecución.</li>
- *   <li><b>Siempre se necesita junto al usuario.</b> Sin el rol no se puede decidir nada
- *       sobre autorización, así que cargarlo aparte solo añadiría una consulta más.</li>
- * </ul>
- *
- * <p>Se declara {@code LAZY} y se trae explícitamente con {@code @EntityGraph} en las
- * consultas del repositorio. Es preferible a {@code EAGER}: con carga ansiosa, Hibernate
- * decide por su cuenta y en un listado de cien usuarios puede acabar emitiendo una consulta
- * por cada uno —el problema N+1—. Con el grafo, la unión es una decisión explícita de cada
- * consulta y el listado se resuelve siempre en una sola.
+ * <p>El rol es la única asociación real del agregado. Es un catálogo cerrado de tres filas
+ * que siempre se necesita junto al usuario, así que se declara {@code LAZY} y se trae con
+ * {@code @EntityGraph} en cada consulta: con {@code EAGER}, un listado de cien usuarios
+ * podría acabar emitiendo ciento una consultas.
  */
 @Entity
 @Table(name = "app_user")
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class UserJpaEntity {
+@SuperBuilder
+@NoArgsConstructor
+public class UserJpaEntity extends AuditableJpaEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -71,11 +55,6 @@ public class UserJpaEntity {
     @Column(name = "email", nullable = false, length = 254)
     private String email;
 
-    /**
-     * Hash BCrypt de la contraseña. Jamás la contraseña en claro (RNF-03).
-     *
-     * <p>Nunca debe incluirse en un DTO de respuesta ni en un texto de registro.
-     */
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -84,12 +63,6 @@ public class UserJpaEntity {
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     @Override
     public boolean equals(Object other) {
@@ -104,7 +77,7 @@ public class UserJpaEntity {
         return getClass().hashCode();
     }
 
-    /** Nunca incluye el hash de la contraseña: este texto acaba en logs y trazas. */
+    /** Sin el hash: este texto acaba en logs y trazas. */
     @Override
     public String toString() {
         return "UserJpaEntity[id=%s, email=%s, active=%s]".formatted(id, email, active);
