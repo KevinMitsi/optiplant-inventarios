@@ -12,13 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Adaptador de salida que satisface {@link RoleRepositoryPort} con JPA.
- *
- * <p>Reutiliza {@code UserPersistenceMapper} para la conversión del rol en lugar de declarar
- * un mapeador propio: la traducción es la misma y duplicarla abriría la puerta a que las dos
- * copias divergieran.
- */
+/** Adaptador de salida que satisface {@link RoleRepositoryPort} con JPA. */
 @Component
 @RequiredArgsConstructor
 public class RolePersistenceAdapter implements RoleRepositoryPort {

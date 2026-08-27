@@ -6,7 +6,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
-/** Traduce entre {@link Organization} y su entidad persistente. */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
         unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface OrganizationPersistenceMapper {

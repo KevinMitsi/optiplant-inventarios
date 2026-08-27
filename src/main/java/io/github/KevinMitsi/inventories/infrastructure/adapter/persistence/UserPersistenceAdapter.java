@@ -22,13 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserPersistenceAdapter implements UserRepositoryPort {
 
-    /**
-     * Campos por los que se admite ordenar.
-     *
-     * <p>Deliberadamente no incluye {@code passwordHash} ni ningún campo sensible: el valor
-     * llega de un parámetro de la petición, y ordenar por un hash permitiría inferir
-     * información sobre él comparando el orden de los resultados.
-     */
+    /** Sin campos sensibles: ordenar por un hash permitiría inferir información sobre él. */
     private static final Set<String> SORTABLE_FIELDS =
             Set.of("firstName", "lastName", "email", "active", "lastLoginAt", "createdAt");
 
