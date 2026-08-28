@@ -100,6 +100,36 @@ class TransferTest {
     }
 
     @Nested
+    @DisplayName("Asignación de logística (Fase 5)")
+    class LogisticsAssignment {
+
+        @Test
+        @DisplayName("asigna transportista y ruta antes de despachar")
+        void assignsCarrierAndRoute() {
+            Transfer transfer = newTransfer();
+            UUID carrierId = UUID.randomUUID();
+            UUID routeId = UUID.randomUUID();
+
+            transfer.assignLogistics(carrierId, routeId, null);
+
+            assertThat(transfer.getCarrierId()).isEqualTo(carrierId);
+            assertThat(transfer.getRouteId()).isEqualTo(routeId);
+        }
+
+        @Test
+        @DisplayName("no se puede asignar logística tras despachar")
+        void cannotAssignAfterDispatch() {
+            Transfer transfer = newTransfer();
+            transfer.approve(APPROVED_BY, Map.of());
+            transfer.startPreparation();
+            transfer.dispatch(Map.of());
+
+            assertThatThrownBy(() -> transfer.assignLogistics(UUID.randomUUID(), UUID.randomUUID(), null))
+                    .isInstanceOf(InvalidStateTransitionException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("Despacho")
     class Dispatch {
 

@@ -5,17 +5,21 @@ import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundEx
 import io.github.KevinMitsi.inventories.application.port.in.ManageTransferUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.QueryTransferUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.command.ApproveTransferCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.query.TransferSearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
+import io.github.KevinMitsi.inventories.domain.model.LogisticsRoute;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Product;
@@ -44,12 +48,16 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
     private static final String BRANCH = "la sucursal";
     private static final String PRODUCT = "el producto";
     private static final String TRANSFER = "la transferencia";
+    private static final String CARRIER = "el transportista";
+    private static final String ROUTE = "la ruta logística";
 
     private final TransferRepositoryPort transferRepository;
     private final TransferIssueRepositoryPort transferIssueRepository;
     private final TransferStatusHistoryRepositoryPort statusHistoryRepository;
     private final BranchRepositoryPort branchRepository;
     private final ProductRepositoryPort productRepository;
+    private final CarrierRepositoryPort carrierRepository;
+    private final LogisticsRouteRepositoryPort routeRepository;
     private final InventoryMovementPoster poster;
 
     public TransferUseCase(TransferRepositoryPort transferRepository,
@@ -57,12 +65,16 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
                            TransferStatusHistoryRepositoryPort statusHistoryRepository,
                            BranchRepositoryPort branchRepository,
                            ProductRepositoryPort productRepository,
+                           CarrierRepositoryPort carrierRepository,
+                           LogisticsRouteRepositoryPort routeRepository,
                            InventoryMovementPoster poster) {
         this.transferRepository = transferRepository;
         this.transferIssueRepository = transferIssueRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.branchRepository = branchRepository;
         this.productRepository = productRepository;
+        this.carrierRepository = carrierRepository;
+        this.routeRepository = routeRepository;
         this.poster = poster;
     }
 
@@ -101,6 +113,27 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
         transfer.approve(command.approvedBy(), approvedQuantities);
         Transfer saved = transferRepository.save(transfer);
         recordHistory(saved, command.approvedBy(), null);
+        return saved;
+    }
+
+    @Override
+    public Transfer assignLogistics(AssignTransferLogisticsCommand command) {
+        Transfer transfer = loadTransfer(command.transferId());
+
+        if (!carrierRepository.existsById(command.carrierId())) {
+            throw new ResourceNotFoundException(CARRIER, command.carrierId());
+        }
+        LogisticsRoute route = routeRepository.findById(command.routeId())
+                .orElseThrow(() -> new ResourceNotFoundException(ROUTE, command.routeId()));
+        if (!route.connects(transfer.getOriginBranchId(), transfer.getDestinationBranchId())) {
+            throw new DomainValidationException("routeId",
+                    "La ruta no conecta el origen y el destino de esta transferencia.");
+        }
+
+        transfer.assignLogistics(command.carrierId(), command.routeId(), command.estimatedArrivalAt());
+        Transfer saved = transferRepository.save(transfer);
+        log.info(() -> "Logística asignada a transferencia: id=%s, transportista=%s, ruta=%s"
+                .formatted(saved.getId(), saved.getCarrierId(), saved.getRouteId()));
         return saved;
     }
 

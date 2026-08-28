@@ -21,10 +21,9 @@ import java.util.UUID;
 /**
  * Cabecera de una transferencia entre sucursales, con sus líneas (ENTITIES.md §13).
  *
- * <p>{@code carrier_id}, {@code route_id} y {@code estimated_arrival_at} no se mapean: son
- * nulables sin valor por defecto en el dominio de esta fase (asignar transportista es tarea
- * de logística, Fase 5), así que se omiten y quedan {@code NULL} sin que Hibernate necesite
- * tocarlos.
+ * <p>{@code carrier_id}/{@code route_id}/{@code estimated_arrival_at} se activaron en Fase 5
+ * (Logística): {@code Transfer.assignLogistics} es lo único que las fija, siempre antes de
+ * despachar.
  */
 @Entity
 @Table(name = "transfer")
@@ -59,6 +58,12 @@ public class TransferJpaEntity extends AuditableJpaEntity {
     @Column(name = "priority", nullable = false, length = 10)
     private String priority;
 
+    @Column(name = "carrier_id")
+    private UUID carrierId;
+
+    @Column(name = "route_id")
+    private UUID routeId;
+
     @Column(name = "requested_at", nullable = false, updatable = false)
     private Instant requestedAt;
 
@@ -67,6 +72,9 @@ public class TransferJpaEntity extends AuditableJpaEntity {
 
     @Column(name = "shipped_at")
     private Instant shippedAt;
+
+    @Column(name = "estimated_arrival_at")
+    private Instant estimatedArrivalAt;
 
     @Column(name = "received_at")
     private Instant receivedAt;

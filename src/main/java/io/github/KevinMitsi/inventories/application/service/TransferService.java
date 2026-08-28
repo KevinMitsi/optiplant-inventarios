@@ -3,6 +3,7 @@ package io.github.KevinMitsi.inventories.application.service;
 import io.github.KevinMitsi.inventories.application.port.in.ManageTransferUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.QueryTransferUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.command.ApproveTransferCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
@@ -34,6 +35,11 @@ public class TransferService implements ManageTransferUseCase, QueryTransferUseC
     @Override
     public Transfer approveTransfer(ApproveTransferCommand command) {
         return useCase.approveTransfer(command);
+    }
+
+    @Override
+    public Transfer assignLogistics(AssignTransferLogisticsCommand command) {
+        return useCase.assignLogistics(command);
     }
 
     @Override

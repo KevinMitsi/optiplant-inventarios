@@ -1,6 +1,7 @@
 package io.github.KevinMitsi.inventories.application.port.in;
 
 import io.github.KevinMitsi.inventories.application.port.in.command.ApproveTransferCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
@@ -13,6 +14,9 @@ public interface ManageTransferUseCase {
     Transfer createTransfer(CreateTransferCommand command);
 
     Transfer approveTransfer(ApproveTransferCommand command);
+
+    /** Asigna transportista y ruta (Fase 5): solo antes de despachar. */
+    Transfer assignLogistics(AssignTransferLogisticsCommand command);
 
     Transfer startPreparation(UUID transferId, UUID userId);
 

@@ -39,9 +39,12 @@ public class TransferPersistenceMapper {
                 .approvedBy(transfer.getApprovedBy())
                 .status(transfer.getStatus().name())
                 .priority(transfer.getPriority().name())
+                .carrierId(transfer.getCarrierId())
+                .routeId(transfer.getRouteId())
                 .requestedAt(transfer.getRequestedAt())
                 .approvedAt(transfer.getApprovedAt())
                 .shippedAt(transfer.getShippedAt())
+                .estimatedArrivalAt(transfer.getEstimatedArrivalAt())
                 .receivedAt(transfer.getReceivedAt())
                 .notes(transfer.getNotes())
                 .createdAt(transfer.getCreatedAt())
@@ -60,7 +63,8 @@ public class TransferPersistenceMapper {
         return Transfer.reconstitute(entity.getId(), entity.getTransferNumber(), entity.getOriginBranchId(),
                 entity.getDestinationBranchId(), entity.getRequestedBy(), TransferStatus.fromString(entity.getStatus()),
                 TransferPriority.fromString(entity.getPriority()), entity.getRequestedAt(), entity.getApprovedBy(),
-                entity.getApprovedAt(), entity.getShippedAt(), entity.getReceivedAt(), entity.getNotes(), items,
+                entity.getApprovedAt(), entity.getCarrierId(), entity.getRouteId(), entity.getShippedAt(),
+                entity.getEstimatedArrivalAt(), entity.getReceivedAt(), entity.getNotes(), items,
                 entity.getCreatedAt(), entity.getUpdatedAt());
     }
 

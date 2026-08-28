@@ -24,9 +24,9 @@ import java.util.UUID;
  * (validando RN-08 vía {@code InventoryMovementPoster}) y {@code TRANSFER_IN} al recibir
  * (RN-09), y de abrir un {@link TransferIssue} por cada línea que llegó incompleta (RN-10).
  *
- * <p>Asignar transportista/ruta ({@code carrier_id}/{@code route_id}/
- * {@code estimated_arrival_at}) queda fuera de esta fase — es tarea de logística (Fase 5) y
- * las columnas correspondientes se persisten siempre nulas por ahora.
+ * <p>Asignar transportista/ruta ({@link #assignLogistics}) es tarea de logística (Fase 5):
+ * solo procede antes de despachar, porque una vez en tránsito ya no tiene sentido cambiar
+ * quién lo lleva ni por qué ruta.
  */
 public final class Transfer {
 
@@ -46,14 +46,18 @@ public final class Transfer {
     private TransferStatus status;
     private UUID approvedBy;
     private Instant approvedAt;
+    private UUID carrierId;
+    private UUID routeId;
     private Instant shippedAt;
+    private Instant estimatedArrivalAt;
     private Instant receivedAt;
     private Instant updatedAt;
 
     private Transfer(UUID id, String transferNumber, UUID originBranchId, UUID destinationBranchId,
                      UUID requestedBy, TransferStatus status, TransferPriority priority, Instant requestedAt,
-                     UUID approvedBy, Instant approvedAt, Instant shippedAt, Instant receivedAt, String notes,
-                     List<TransferItem> items, Instant createdAt, Instant updatedAt) {
+                     UUID approvedBy, Instant approvedAt, UUID carrierId, UUID routeId, Instant shippedAt,
+                     Instant estimatedArrivalAt, Instant receivedAt, String notes, List<TransferItem> items,
+                     Instant createdAt, Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "El identificador de la transferencia no puede ser nulo.");
         this.transferNumber = requireTransferNumber(transferNumber);
         this.originBranchId = Objects.requireNonNull(originBranchId, "La transferencia debe tener sucursal de origen.");
@@ -69,7 +73,10 @@ public final class Transfer {
         this.requestedAt = Objects.requireNonNull(requestedAt, "La fecha de solicitud es obligatoria.");
         this.approvedBy = approvedBy;
         this.approvedAt = approvedAt;
+        this.carrierId = carrierId;
+        this.routeId = routeId;
         this.shippedAt = shippedAt;
+        this.estimatedArrivalAt = estimatedArrivalAt;
         this.receivedAt = receivedAt;
         this.notes = notes == null || notes.isBlank() ? null : notes.trim();
         this.items = requireItems(items);
@@ -83,16 +90,19 @@ public final class Transfer {
                                   List<TransferItem> items) {
         Instant now = Instant.now();
         return new Transfer(UUID.randomUUID(), transferNumber, originBranchId, destinationBranchId, requestedBy,
-                TransferStatus.REQUESTED, priority, now, null, null, null, null, notes, items, now, now);
+                TransferStatus.REQUESTED, priority, now, null, null, null, null, null, null, null, notes, items,
+                now, now);
     }
 
     public static Transfer reconstitute(UUID id, String transferNumber, UUID originBranchId,
                                         UUID destinationBranchId, UUID requestedBy, TransferStatus status,
                                         TransferPriority priority, Instant requestedAt, UUID approvedBy,
-                                        Instant approvedAt, Instant shippedAt, Instant receivedAt, String notes,
+                                        Instant approvedAt, UUID carrierId, UUID routeId, Instant shippedAt,
+                                        Instant estimatedArrivalAt, Instant receivedAt, String notes,
                                         List<TransferItem> items, Instant createdAt, Instant updatedAt) {
         return new Transfer(id, transferNumber, originBranchId, destinationBranchId, requestedBy, status, priority,
-                requestedAt, approvedBy, approvedAt, shippedAt, receivedAt, notes, items, createdAt, updatedAt);
+                requestedAt, approvedBy, approvedAt, carrierId, routeId, shippedAt, estimatedArrivalAt, receivedAt,
+                notes, items, createdAt, updatedAt);
     }
 
     /**
@@ -112,6 +122,21 @@ public final class Transfer {
         this.approvedBy = approvedBy;
         this.approvedAt = Instant.now();
         this.status = TransferStatus.APPROVED;
+        touch();
+    }
+
+    /**
+     * Asigna transportista y ruta (Fase 5, Logística). Solo antes de despachar: una vez en
+     * tránsito ya hay stock de origen comprometido bajo un plan de envío concreto.
+     */
+    public void assignLogistics(UUID carrierId, UUID routeId, Instant estimatedArrivalAt) {
+        if (status != TransferStatus.REQUESTED && status != TransferStatus.APPROVED
+                && status != TransferStatus.IN_PREPARATION) {
+            throw new InvalidStateTransitionException("Transfer", status, "asignar transportista y ruta");
+        }
+        this.carrierId = Objects.requireNonNull(carrierId, "El transportista es obligatorio.");
+        this.routeId = Objects.requireNonNull(routeId, "La ruta es obligatoria.");
+        this.estimatedArrivalAt = estimatedArrivalAt;
         touch();
     }
 
@@ -254,8 +279,20 @@ public final class Transfer {
         return approvedAt;
     }
 
+    public UUID getCarrierId() {
+        return carrierId;
+    }
+
+    public UUID getRouteId() {
+        return routeId;
+    }
+
     public Instant getShippedAt() {
         return shippedAt;
+    }
+
+    public Instant getEstimatedArrivalAt() {
+        return estimatedArrivalAt;
     }
 
     public Instant getReceivedAt() {

@@ -6,6 +6,8 @@ import io.github.KevinMitsi.inventories.application.port.in.command.CreateTransf
 import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
@@ -69,6 +71,10 @@ class TransferServiceTest {
     @Mock
     private ProductRepositoryPort productRepository;
     @Mock
+    private CarrierRepositoryPort carrierRepository;
+    @Mock
+    private LogisticsRouteRepositoryPort logisticsRouteRepository;
+    @Mock
     private InventoryMovementPoster poster;
 
     private TransferUseCase service;
@@ -77,7 +83,7 @@ class TransferServiceTest {
     @BeforeEach
     void setUp() {
         service = new TransferUseCase(transferRepository, transferIssueRepository, statusHistoryRepository,
-                branchRepository, productRepository, poster);
+                branchRepository, productRepository, carrierRepository, logisticsRouteRepository, poster);
 
         UnitOfMeasure unit = new UnitOfMeasure(UUID.randomUUID(), "UNIT", "Unidad", "und");
         product = Product.create(UUID.randomUUID(), null, "SKU-1", null, "Producto", null, unit);
@@ -126,6 +132,53 @@ class TransferServiceTest {
 
             assertThatThrownBy(() -> service.createTransfer(command))
                     .isInstanceOf(DuplicateResourceException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Asignación de logística (Fase 5)")
+    class LogisticsAssignment {
+
+        @Test
+        @DisplayName("asigna transportista y ruta cuando la ruta conecta origen y destino")
+        void assignsLogistics() {
+            Transfer transfer = transferInPreparation();
+            UUID carrierId = UUID.randomUUID();
+            UUID routeId = UUID.randomUUID();
+            io.github.KevinMitsi.inventories.domain.model.LogisticsRoute route =
+                    io.github.KevinMitsi.inventories.domain.model.LogisticsRoute.create(
+                            UUID.randomUUID(), ORIGIN_ID, DESTINATION_ID, "Ruta", 60, null, (short) 0);
+
+            when(transferRepository.findById(transfer.getId())).thenReturn(Optional.of(transfer));
+            when(carrierRepository.existsById(carrierId)).thenReturn(true);
+            when(logisticsRouteRepository.findById(routeId)).thenReturn(Optional.of(route));
+
+            Transfer saved = service.assignLogistics(
+                    new io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand(
+                            transfer.getId(), carrierId, routeId, null));
+
+            assertThat(saved.getCarrierId()).isEqualTo(carrierId);
+            assertThat(saved.getRouteId()).isEqualTo(routeId);
+        }
+
+        @Test
+        @DisplayName("rechaza una ruta que no conecta el origen y destino de la transferencia")
+        void rejectsRouteThatDoesNotConnect() {
+            Transfer transfer = transferInPreparation();
+            UUID carrierId = UUID.randomUUID();
+            UUID routeId = UUID.randomUUID();
+            io.github.KevinMitsi.inventories.domain.model.LogisticsRoute unrelatedRoute =
+                    io.github.KevinMitsi.inventories.domain.model.LogisticsRoute.create(
+                            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Otra ruta", 60, null, (short) 0);
+
+            when(transferRepository.findById(transfer.getId())).thenReturn(Optional.of(transfer));
+            when(carrierRepository.existsById(carrierId)).thenReturn(true);
+            when(logisticsRouteRepository.findById(routeId)).thenReturn(Optional.of(unrelatedRoute));
+
+            assertThatThrownBy(() -> service.assignLogistics(
+                    new io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand(
+                            transfer.getId(), carrierId, routeId, null)))
+                    .isInstanceOf(io.github.KevinMitsi.inventories.domain.exception.DomainValidationException.class);
         }
     }
 

@@ -70,6 +70,22 @@ public final class TransferDtos {
     ) {
     }
 
+    @Schema(name = "AssignTransferLogisticsRequest")
+    public record AssignTransferLogisticsRequest(
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            @NotNull(message = "El transportista es obligatorio.")
+            UUID carrierId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            @NotNull(message = "La ruta es obligatoria.")
+            UUID routeId,
+
+            @Schema(description = "Llegada estimada, si se conoce.")
+            Instant estimatedArrivalAt
+    ) {
+    }
+
     @Schema(name = "ApproveTransferRequest")
     public record ApproveTransferRequest(
 
@@ -103,9 +119,9 @@ public final class TransferDtos {
     @Schema(name = "TransferResponse")
     public record TransferResponse(
             UUID id, String transferNumber, UUID originBranchId, UUID destinationBranchId, UUID requestedBy,
-            UUID approvedBy, String status, String priority, Instant requestedAt, Instant approvedAt,
-            Instant shippedAt, Instant receivedAt, String notes, List<ItemResponse> items, Instant createdAt,
-            Instant updatedAt
+            UUID approvedBy, String status, String priority, UUID carrierId, UUID routeId, Instant requestedAt,
+            Instant approvedAt, Instant shippedAt, Instant estimatedArrivalAt, Instant receivedAt, String notes,
+            List<ItemResponse> items, Instant createdAt, Instant updatedAt
     ) {
         @Schema(name = "TransferItemResponse")
         public record ItemResponse(

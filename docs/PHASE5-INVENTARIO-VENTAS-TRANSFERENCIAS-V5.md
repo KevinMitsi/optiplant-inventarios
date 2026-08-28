@@ -2,9 +2,21 @@
 
 > Estado a 2026-08-28. Plan aprobado original: `snazzy-snacking-peach.md` (guardado en
 > `~/.claude/plans/`). Este documento reemplaza esa referencia efímera con una que vive en
-> el repo y sirve para retomar en otra sesión. Ver también `docs/PHASE5-FASE3-VENTAS-CIERRE.md`
-> y `docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md` para el detalle de cómo se cerraron las
+> el repo y sirve para retomar en otra sesión. Ver también `docs/PHASE5.3-VENTAS-CIERRE.md`
+> y `docs/PHASE5.4-TRANSFERENCIAS-CIERRE.md` para el detalle de cómo se cerraron las
 > Fases 3 y 4.
+>
+> **Versionado**: este archivo NO se sobreescribe en el mismo nombre al cerrar una fase — el
+> sufijo `-V{n}` sube (`n` = número de la última fase cerrada al momento del snapshot) y el
+> archivo anterior se conserva para dejar rastro auditable de la evolución del plan. Este es
+> `V5` (snapshot tras cerrar Fase 5 — Logística). El siguiente cierre (Fase 6) debe crear
+> `PHASE5-INVENTARIO-VENTAS-TRANSFERENCIAS-V6.md`, no editar este archivo in-place.
+>
+> **Numeración de archivos**: todo esto es una sola fase top-level del proyecto (`PHASE5`,
+> igual que `PHASE1.md`..`PHASE4-CATALOGO.md`). Las sub-fases internas (Fase 1..7 listadas
+> abajo) usan notación decimal en el nombre de archivo de su cierre: `PHASE5.3-*-CIERRE.md`
+> (Fase 3 — Ventas), `PHASE5.4-*-CIERRE.md` (Fase 4 — Transferencias),
+> `PHASE5.5-*-CIERRE.md` (Fase 5 — Logística). Fase 6 → `PHASE5.6-DASHBOARD-CIERRE.md`.
 
 ## Objetivo del alcance
 
@@ -55,7 +67,7 @@ dominio + servicio (conversión de unidad box→base, recepción parcial). Todo 
 verde.
 
 ### Fase 3 — Ventas — COMPLETO
-Cierre detallado en `docs/PHASE5-FASE3-VENTAS-CIERRE.md`. Resumen: persistencia
+Cierre detallado en `docs/PHASE5.3-VENTAS-CIERRE.md`. Resumen: persistencia
 (`ProductPricePersistenceAdapter`, `SalePersistenceAdapter`), web (`PriceListDtos`, `SaleDtos`,
 `SalesWebMapper`, `PriceListController`, `SaleController`), tests de dominio (`SaleTest`) y de
 caso de uso (`SaleServiceTest`, `PriceListServiceTest`, ambos en `domain.usecase` siguiendo el
@@ -84,10 +96,10 @@ Docker local (Testcontainers) — no relacionada con este trabajo.
 - Persistencia — adaptador: `PriceListPersistenceAdapter` (implementa
   `PriceListRepositoryPort` vía `PageQueryTranslator` + `SalesSpecifications`).
 
-**Pendiente:** nada. Fase cerrada, ver `docs/PHASE5-FASE3-VENTAS-CIERRE.md`.
+**Pendiente:** nada. Fase cerrada, ver `docs/PHASE5.3-VENTAS-CIERRE.md`.
 
 ### Fase 4 — Transferencias — COMPLETO
-Cierre detallado en `docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md`. Resumen: dominio
+Cierre detallado en `docs/PHASE5.4-TRANSFERENCIAS-CIERRE.md`. Resumen: dominio
 (`Transfer`+`TransferItem` agregado con máquina de estados de 5 pasos, `TransferIssue` y
 `TransferStatusHistory` como agregados independientes, 4 enums), aplicación (comandos, puertos
 in/out, `TransferUseCase`/`TransferIssueUseCase`), persistencia (4 entidades JPA, specs,
@@ -98,18 +110,13 @@ RN-07/RN-08/RN-09/RN-10 cubiertas. Asignar transportista/ruta queda fuera de est
 `InventoriesApplicationTests.contextLoads`, es por Docker no disponible localmente, no
 relacionada con este trabajo).
 
-### Fase 5 — Logística — NO INICIADO
-`Carrier`, `LogisticsRoute` CRUD (patrón `CategoryService`/`SupplierService`). Consulta de
-cumplimiento por ruta (HU-36/37): estimado (`estimated_duration_minutes`/
-`estimated_arrival_at`) vs. real (`shipped_at`/`received_at`) agregando sobre `transfer`.
-
-**Pendiente de Fase 4**: `TransferJpaEntity` no mapea `carrier_id`/`route_id`/
-`estimated_arrival_at` (se dejaron sin mapear a propósito, ver
-`docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md`). Esta fase debe: (a) añadir esas tres columnas
-al entity y al mapper, (b) añadir un comando/endpoint tipo "asignar transportista y ruta" a
-`Transfer` (probablemente solo válido en `REQUESTED`/`APPROVED`, antes de despachar) — el
-dominio (`Transfer`) no tiene ningún método para esto todavía, hay que añadirlo ahí, no
-solo en persistencia.
+### Fase 5 — Logística — COMPLETO
+Cierre detallado en `docs/PHASE5.5-LOGISTICA-CIERRE.md`. Resumen: `Carrier`/
+`LogisticsRoute` CRUD (patrón `SupplierService`), `Transfer.assignLogistics` (nuevo método de
+dominio, solo antes de despachar) con `carrier_id`/`route_id`/`estimated_arrival_at` ya
+mapeados en `TransferJpaEntity`, y consulta de cumplimiento por ruta (HU-36/37) vía consulta
+nativa agregando `transfer` sobre `logistics_route`. Compila y verde: 346 tests, única falla
+`InventoriesApplicationTests.contextLoads` (Docker no disponible localmente, no relacionada).
 
 ### Fase 6 — Dashboard — NO INICIADO
 Records de proyección en `domain/model` (`SalesSummary`, `ProductRotation`,
@@ -161,7 +168,7 @@ Casos de negocio que los tests deben demostrar explícitamente, todos ya cubiert
 ## Cómo retomar
 
 1. Leer este archivo completo.
-2. Ir directo a "Fase 5 — Logística — NO INICIADO".
-3. Seguir el orden de fases 5→6→7 tal como está aquí; no reabrir decisiones de diseño
+2. Ir directo a "Fase 6 — Dashboard — NO INICIADO".
+3. Seguir el orden de fases 6→7 tal como está aquí; no reabrir decisiones de diseño
    salvo que aparezca un conflicto real con el esquema o el dominio.
 4. Compilar y correr tests después de cada módulo, no acumular fases sin verificar.

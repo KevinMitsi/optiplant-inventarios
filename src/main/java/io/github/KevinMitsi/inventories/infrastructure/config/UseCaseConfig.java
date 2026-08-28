@@ -1,11 +1,13 @@
 package io.github.KevinMitsi.inventories.infrastructure.config;
 
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAdjustmentRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryMovementRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.PasswordHasherPort;
 import io.github.KevinMitsi.inventories.application.port.out.PriceListRepositoryPort;
@@ -23,11 +25,13 @@ import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureReposi
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.usecase.AuthenticationUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.BranchUseCase;
+import io.github.KevinMitsi.inventories.domain.usecase.CarrierUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.CategoryUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryAdjustmentUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryAlertUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryMovementPoster;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryUseCase;
+import io.github.KevinMitsi.inventories.domain.usecase.LogisticsRouteUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.PriceListUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.ProductUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.PurchaseOrderUseCase;
@@ -156,10 +160,25 @@ public class UseCaseConfig {
                                             TransferStatusHistoryRepositoryPort transferStatusHistoryRepositoryPort,
                                             BranchRepositoryPort branchRepositoryPort,
                                             ProductRepositoryPort productRepositoryPort,
+                                            CarrierRepositoryPort carrierRepositoryPort,
+                                            LogisticsRouteRepositoryPort logisticsRouteRepositoryPort,
                                             InventoryMovementPoster inventoryMovementPoster) {
         return new TransferUseCase(transferRepositoryPort, transferIssueRepositoryPort,
                 transferStatusHistoryRepositoryPort, branchRepositoryPort, productRepositoryPort,
-                inventoryMovementPoster);
+                carrierRepositoryPort, logisticsRouteRepositoryPort, inventoryMovementPoster);
+    }
+
+    @Bean
+    public CarrierUseCase carrierUseCase(CarrierRepositoryPort carrierRepositoryPort,
+                                          OrganizationRepositoryPort organizationRepositoryPort) {
+        return new CarrierUseCase(carrierRepositoryPort, organizationRepositoryPort);
+    }
+
+    @Bean
+    public LogisticsRouteUseCase logisticsRouteUseCase(LogisticsRouteRepositoryPort logisticsRouteRepositoryPort,
+                                                         OrganizationRepositoryPort organizationRepositoryPort,
+                                                         BranchRepositoryPort branchRepositoryPort) {
+        return new LogisticsRouteUseCase(logisticsRouteRepositoryPort, organizationRepositoryPort, branchRepositoryPort);
     }
 
     @Bean

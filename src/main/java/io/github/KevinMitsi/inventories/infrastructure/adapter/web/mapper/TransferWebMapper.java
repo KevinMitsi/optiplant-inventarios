@@ -1,6 +1,7 @@
 package io.github.KevinMitsi.inventories.infrastructure.adapter.web.mapper;
 
 import io.github.KevinMitsi.inventories.application.port.in.command.ApproveTransferCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AssignTransferLogisticsCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
@@ -31,6 +32,12 @@ public interface TransferWebMapper {
 
         return new CreateTransferCommand(originBranchId, request.destinationBranchId(), requestedBy,
                 request.transferNumber(), request.priority(), request.notes(), items);
+    }
+
+    default AssignTransferLogisticsCommand toCommand(UUID transferId,
+                                                      TransferDtos.AssignTransferLogisticsRequest request) {
+        return new AssignTransferLogisticsCommand(transferId, request.carrierId(), request.routeId(),
+                request.estimatedArrivalAt());
     }
 
     default ApproveTransferCommand toCommand(UUID transferId, UUID approvedBy,

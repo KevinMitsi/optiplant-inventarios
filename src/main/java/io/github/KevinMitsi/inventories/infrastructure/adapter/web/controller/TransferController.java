@@ -127,6 +127,19 @@ public class TransferController {
         return mapper.toResponse(transfer);
     }
 
+    @PostMapping(value = "/transfers/{transferId}/logistics-assignment", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
+    @Operation(operationId = "assignTransferLogistics", summary = "Asignar transportista y ruta (Fase 5)",
+            description = "Solo antes de despachar. La ruta debe conectar el origen y el "
+                    + "destino de la transferencia.")
+    public TransferDtos.TransferResponse assignLogistics(
+            @PathVariable UUID transferId,
+            @Valid @RequestBody TransferDtos.AssignTransferLogisticsRequest request) {
+
+        Transfer transfer = manageTransferUseCase.assignLogistics(mapper.toCommand(transferId, request));
+        return mapper.toResponse(transfer);
+    }
+
     @PostMapping("/transfers/{transferId}/preparation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
     @Operation(operationId = "startTransferPreparation", summary = "Iniciar la preparación de una transferencia aprobada")
