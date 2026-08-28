@@ -11,11 +11,13 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.PriceList;
 import io.github.KevinMitsi.inventories.domain.model.ProductPrice;
 import io.github.KevinMitsi.inventories.domain.usecase.PriceListUseCase;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Primary
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class PriceListService implements ManagePriceListUseCase, QueryPriceListUseCase {
