@@ -3,6 +3,7 @@ package io.github.KevinMitsi.inventories.infrastructure.config;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.DashboardRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAdjustmentRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryMovementRepositoryPort;
@@ -27,6 +28,7 @@ import io.github.KevinMitsi.inventories.domain.usecase.AuthenticationUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.BranchUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.CarrierUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.CategoryUseCase;
+import io.github.KevinMitsi.inventories.domain.usecase.DashboardUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryAdjustmentUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryAlertUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryMovementPoster;
@@ -179,6 +181,12 @@ public class UseCaseConfig {
                                                          OrganizationRepositoryPort organizationRepositoryPort,
                                                          BranchRepositoryPort branchRepositoryPort) {
         return new LogisticsRouteUseCase(logisticsRouteRepositoryPort, organizationRepositoryPort, branchRepositoryPort);
+    }
+
+    @Bean
+    public DashboardUseCase dashboardUseCase(DashboardRepositoryPort dashboardRepositoryPort,
+                                              OrganizationRepositoryPort organizationRepositoryPort) {
+        return new DashboardUseCase(dashboardRepositoryPort, organizationRepositoryPort);
     }
 
     @Bean
