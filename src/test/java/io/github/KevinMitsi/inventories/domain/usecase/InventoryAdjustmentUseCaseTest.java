@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateInventoryAdjustmentCommand;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("InventoryAdjustmentService")
+@DisplayName("InventoryAdjustmentUseCase")
 class InventoryAdjustmentServiceTest {
 
     private static final UUID BRANCH_ID = UUID.randomUUID();
@@ -54,12 +54,12 @@ class InventoryAdjustmentServiceTest {
     @Mock
     private InventoryMovementPoster poster;
 
-    private InventoryAdjustmentService service;
+    private InventoryAdjustmentUseCase service;
     private Product product;
 
     @BeforeEach
     void setUp() {
-        service = new InventoryAdjustmentService(adjustmentRepository, branchRepository, productRepository, poster);
+        service = new InventoryAdjustmentUseCase(adjustmentRepository, branchRepository, productRepository, poster);
 
         product = Product.create(UUID.randomUUID(), null, "SKU-1", null, "Producto", null,
                 new UnitOfMeasure(UUID.randomUUID(), "UNIT", "Unidad", "und"));

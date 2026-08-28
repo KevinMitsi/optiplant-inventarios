@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("SupplierService")
+@DisplayName("SupplierUseCase")
 class SupplierServiceTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
@@ -34,11 +34,11 @@ class SupplierServiceTest {
     @Mock
     private OrganizationRepositoryPort organizationRepository;
 
-    private SupplierService service;
+    private SupplierUseCase service;
 
     @BeforeEach
     void setUp() {
-        service = new SupplierService(supplierRepository, organizationRepository);
+        service = new SupplierUseCase(supplierRepository, organizationRepository);
         when(organizationRepository.existsById(ORGANIZATION_ID)).thenReturn(true);
         when(supplierRepository.save(any(Supplier.class))).thenAnswer(call -> call.getArgument(0));
     }

@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.InvalidCredentialsException;
 import io.github.KevinMitsi.inventories.application.exception.InvalidTokenException;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Pruebas unitarias de {@link AuthenticationService}.
+ * Pruebas unitarias de {@link AuthenticationUseCase}.
  *
  * <p>Buena parte de ellas comprueba <em>qué no se revela</em>: que las tres formas de fallar
  * un acceso produzcan la misma respuesta, y que un correo desconocido consuma el mismo
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("AuthenticationService")
+@DisplayName("AuthenticationUseCase")
 class AuthenticationServiceTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -66,7 +66,7 @@ class AuthenticationServiceTest {
     private TokenProviderPort tokenProvider;
 
     @InjectMocks
-    private AuthenticationService service;
+    private AuthenticationUseCase service;
 
     private User activeUser;
 

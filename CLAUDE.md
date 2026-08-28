@@ -59,6 +59,49 @@ Tech stack actually locked in via `build.gradle` (Java 21 toolchain):
   the `asciidoctor` task.
 - **Lombok** is available for both main and test source sets.
 
+### Hexagonal flow
+
+The codebase now implements ports-and-adapters, not just a skeleton. Package layout under
+`io.github.KevinMitsi.inventories`:
+
+- `domain.usecase` — business logic. **Pure Java only**: no Spring, no SLF4J, no third-party libs. Plain
+  constructors (no `@Autowired`/`@Service`), logging via `java.util.logging.Logger` with lazy-supplier calls
+  (`log.info(() -> "...".formatted(...))`). Depends only on `domain.model` and `application.port.out` interfaces.
+  One concrete class per aggregate (e.g. `CategoryUseCase`), implementing one or more `application.port.in`
+  interfaces (ISP: `Manage*UseCase` for writes, `Query*UseCase` for reads, split further when a controller only
+  needs one operation, e.g. `CreateBranchUseCase`).
+- `application.port.in` — inbound interfaces (what a use case can do), plus `command`/`query`/`result` DTOs.
+- `application.port.out` — outbound interfaces (repositories, password hashing, token issuance) that
+  `domain.usecase` calls to reach infrastructure without depending on it.
+- `application.service` — thin `@Service @Transactional(rollbackFor = Exception.class)` wrapper classes, one per
+  `domain.usecase` class, implementing the same `port.in` interfaces and delegating every method 1:1 to the wrapped
+  use case. **This is where the transaction boundary lives** — deliberately, so one whole business operation (e.g.
+  `InventoryAdjustmentUseCase.approveAdjustment` posting several movements through `InventoryMovementPoster`, which
+  touches `inventory`, `inventory_movement`, and `inventory_alert`) commits or rolls back atomically, satisfying
+  RN-04/RN-08/RN-09/RN-10. Persistence adapters carry no `@Transactional` of their own.
+- `infrastructure.adapter.web.controller` — REST controllers; depend only on `port.in` interfaces, never on
+  concrete `domain.usecase` or `application.service` classes.
+- `infrastructure.adapter.persistence` — `*PersistenceAdapter` classes (`@Component`, no `@Transactional`)
+  implementing `port.out` repository interfaces via Spring Data JPA + mappers.
+- `infrastructure.config.UseCaseConfig` — the one place infrastructure is allowed to know concrete
+  `domain.usecase` classes: a plain `@Configuration` with `@Bean` methods constructing each use case with `new`
+  (manual wiring, since the use case itself carries no Spring annotations). It does not expose `port.in` beans —
+  `application.service.*Service` classes do that (Spring autowires the concrete `domain.usecase` bean into each
+  service's constructor).
+- `infrastructure.adapter.security` — JWT (JJWT `io.jsonwebtoken`): `JwtTokenProviderAdapter` (issues tokens),
+  `JwtAuthenticationFilter` (verifies them per request), `SecurityConfig` (public vs. authenticated paths). No
+  bootstrap/auto-seed admin — the app has no automatic first-admin provisioning.
+
+Request flow: `Controller` → `port.in` interface → `application.service.*Service` (`@Transactional` starts here)
+→ `domain.usecase` (pure business logic) → `port.out` interface → `*PersistenceAdapter` (transaction commits/rolls
+back when the service method returns).
+
+When adding a new use case: write the interface(s) in `application.port.in`, the outbound interface(s) in
+`application.port.out` if new persistence/infra access is needed, the pure-Java implementation in `domain.usecase`,
+a wiring `@Bean` in `UseCaseConfig`, and a delegating `@Transactional` wrapper in `application.service`. Keep
+comments in `domain.usecase` to a minimum — only for genuinely non-obvious logic (e.g. timing-safe auth failure,
+off-by-one admin-count thresholds), never class-level javadoc restating the class name.
+
 ### Domain model
 
 The system models inventory across multiple branches (`sucursales`) belonging to one organization. The entity

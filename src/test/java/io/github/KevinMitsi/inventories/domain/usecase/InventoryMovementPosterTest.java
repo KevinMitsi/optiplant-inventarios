@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryMovementRepositoryPort;

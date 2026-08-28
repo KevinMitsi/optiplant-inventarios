@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.port.in.command.CreatePurchaseOrderCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceivePurchaseOrderItemCommand;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("PurchaseOrderService")
+@DisplayName("PurchaseOrderUseCase")
 class PurchaseOrderServiceTest {
 
     private static final UUID BRANCH_ID = UUID.randomUUID();
@@ -61,13 +61,13 @@ class PurchaseOrderServiceTest {
     @Mock
     private InventoryMovementPoster poster;
 
-    private PurchaseOrderService service;
+    private PurchaseOrderUseCase service;
     private Product product;
     private ProductUnit boxUnit;
 
     @BeforeEach
     void setUp() {
-        service = new PurchaseOrderService(purchaseOrderRepository, branchRepository, supplierRepository,
+        service = new PurchaseOrderUseCase(purchaseOrderRepository, branchRepository, supplierRepository,
                 productRepository, poster);
 
         UnitOfMeasure unit = new UnitOfMeasure(UUID.randomUUID(), "UNIT", "Unidad", "und");

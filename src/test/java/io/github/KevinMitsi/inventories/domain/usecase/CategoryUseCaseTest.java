@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("CategoryService")
+@DisplayName("CategoryUseCase")
 class CategoryServiceTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
@@ -49,7 +49,7 @@ class CategoryServiceTest {
     private OrganizationRepositoryPort organizationRepository;
 
     @InjectMocks
-    private CategoryService service;
+    private CategoryUseCase service;
 
     private Category category;
 
