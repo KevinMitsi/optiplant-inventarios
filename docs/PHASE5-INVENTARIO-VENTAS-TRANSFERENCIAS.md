@@ -1,8 +1,10 @@
 # Fase 5 — Inventario, Compras, Ventas, Transferencias, Logística, Dashboard
 
-> Estado a 2026-08-27. Plan aprobado original: `snazzy-snacking-peach.md` (guardado en
+> Estado a 2026-08-28. Plan aprobado original: `snazzy-snacking-peach.md` (guardado en
 > `~/.claude/plans/`). Este documento reemplaza esa referencia efímera con una que vive en
-> el repo y sirve para retomar en otra sesión.
+> el repo y sirve para retomar en otra sesión. Ver también `docs/PHASE5-FASE3-VENTAS-CIERRE.md`
+> y `docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md` para el detalle de cómo se cerraron las
+> Fases 3 y 4.
 
 ## Objetivo del alcance
 
@@ -52,8 +54,17 @@ DTOs/mapper web/controladores (`SupplierController`, `PurchaseOrderController`).
 dominio + servicio (conversión de unidad box→base, recepción parcial). Todo verificado en
 verde.
 
-### Fase 3 — Ventas — PARCIAL (~65%)
-**Hecho:**
+### Fase 3 — Ventas — COMPLETO
+Cierre detallado en `docs/PHASE5-FASE3-VENTAS-CIERRE.md`. Resumen: persistencia
+(`ProductPricePersistenceAdapter`, `SalePersistenceAdapter`), web (`PriceListDtos`, `SaleDtos`,
+`SalesWebMapper`, `PriceListController`, `SaleController`), tests de dominio (`SaleTest`) y de
+caso de uso (`SaleServiceTest`, `PriceListServiceTest`, ambos en `domain.usecase` siguiendo el
+patrón real del repo, no `application.service`). RN-03 y la restitución `RETURN_IN` cubiertas.
+Compila y verde (`compileJava`, `compileTestJava`, tests dirigidos). `./gradlew test` completo:
+310/311 en verde, la única falla es `InventoriesApplicationTests.contextLoads` por falta de
+Docker local (Testcontainers) — no relacionada con este trabajo.
+
+**Hecho (histórico, ya cubierto arriba):**
 - Dominio completo: `SaleStatus`, `PriceList`, `ProductPrice`, `SaleItem`, `Sale`
   (`confirm()`, `cancel()`, `total()`).
 - Aplicación completa: comandos (`CreatePriceListCommand`, `UpdatePriceListCommand`,
@@ -73,43 +84,32 @@ verde.
 - Persistencia — adaptador: `PriceListPersistenceAdapter` (implementa
   `PriceListRepositoryPort` vía `PageQueryTranslator` + `SalesSpecifications`).
 
-**Pendiente — retomar aquí:**
-1. `ProductPricePersistenceAdapter` (implementa `ProductPriceRepositoryPort`; no necesita
-   paginación, solo CRUD + `findByPriceListIdAndProductIdAndProductUnitId`).
-2. `SalePersistenceAdapter` (implementa `SaleRepositoryPort` vía `SalesSpecifications.forSales`).
-3. Web: `PriceListDtos.java`, `SaleDtos.java`, `SalesWebMapper.java` (MapStruct, seguir
-   patrón `PurchasingWebMapper`/`InventoryWebMapper` — qualifiers para `Money`/`Quantity`/
-   `Percentage`).
-4. Web: `PriceListController.java`, `SaleController.java` (Swagger annotations, igual que
-   controladores de Fases 1-2).
-5. Tests dominio: `SaleTest.java` (opcional `PriceListTest.java`).
-6. Tests aplicación: `SaleServiceTest.java` — **crítico**, debe cubrir:
-   - RN-03: `confirmSale` propaga `InsufficientStockException` desde
-     `InventoryMovementPoster` cuando no hay stock suficiente.
-   - cancelar venta ya `CONFIRMED` → postea `RETURN_IN` compensatorio por cada línea.
-   - `PriceListServiceTest.java` (CRUD + upsert de `ProductPrice`).
-7. Compilar y verificar:
-   ```
-   ./gradlew.bat compileJava
-   ./gradlew.bat compileTestJava
-   ./gradlew.bat test --tests "*.domain.model.Sale*Test" --tests "*.application.service.*Sale*Test" --tests "*.application.service.PriceListServiceTest"
-   ```
-   Confirmar `failures="0" errors="0"` en los XML de `build/test-results/test/`.
+**Pendiente:** nada. Fase cerrada, ver `docs/PHASE5-FASE3-VENTAS-CIERRE.md`.
 
-### Fase 4 — Transferencias — NO INICIADO
-`Transfer`, `TransferItem`, `TransferStatusHistory`, `TransferIssue` + enums
-(`TransferStatus`, `TransferPriority`, `TransferIssueType`, `TransferIssueResolution`).
-Máquina de estados según decisión de diseño #5. 5 pasos: solicitar → aprobar → preparar →
-despachar (postea `TRANSFER_OUT`, valida stock origen RN-08) → recibir completo/parcial
-(postea `TRANSFER_IN` por cantidad real, RN-09; genera `TransferIssue` si `received <
-shipped`, RN-10) → resolver incidencia. Autorización: origen para solicitar/despachar,
-destino para recibir. Puertos, servicio, persistencia, web, tests — patrón idéntico a Fases
-1-3.
+### Fase 4 — Transferencias — COMPLETO
+Cierre detallado en `docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md`. Resumen: dominio
+(`Transfer`+`TransferItem` agregado con máquina de estados de 5 pasos, `TransferIssue` y
+`TransferStatusHistory` como agregados independientes, 4 enums), aplicación (comandos, puertos
+in/out, `TransferUseCase`/`TransferIssueUseCase`), persistencia (4 entidades JPA, specs,
+mapper, 3 adaptadores), web (`TransferController`, `TransferIssueController`), tests de
+dominio (`TransferTest`) y de caso de uso (`TransferServiceTest`, `TransferIssueServiceTest`).
+RN-07/RN-08/RN-09/RN-10 cubiertas. Asignar transportista/ruta queda fuera de esta fase
+(diferido a Fase 5, Logística). Compila y verde: 334/335 tests (única falla,
+`InventoriesApplicationTests.contextLoads`, es por Docker no disponible localmente, no
+relacionada con este trabajo).
 
 ### Fase 5 — Logística — NO INICIADO
 `Carrier`, `LogisticsRoute` CRUD (patrón `CategoryService`/`SupplierService`). Consulta de
 cumplimiento por ruta (HU-36/37): estimado (`estimated_duration_minutes`/
 `estimated_arrival_at`) vs. real (`shipped_at`/`received_at`) agregando sobre `transfer`.
+
+**Pendiente de Fase 4**: `TransferJpaEntity` no mapea `carrier_id`/`route_id`/
+`estimated_arrival_at` (se dejaron sin mapear a propósito, ver
+`docs/PHASE5-FASE4-TRANSFERENCIAS-CIERRE.md`). Esta fase debe: (a) añadir esas tres columnas
+al entity y al mapper, (b) añadir un comando/endpoint tipo "asignar transportista y ruta" a
+`Transfer` (probablemente solo válido en `REQUESTED`/`APPROVED`, antes de despachar) — el
+dominio (`Transfer`) no tiene ningún método para esto todavía, hay que añadirlo ahí, no
+solo en persistencia.
 
 ### Fase 6 — Dashboard — NO INICIADO
 Records de proyección en `domain/model` (`SalesSummary`, `ProductRotation`,
@@ -161,7 +161,7 @@ Casos de negocio que los tests deben demostrar explícitamente, todos ya cubiert
 ## Cómo retomar
 
 1. Leer este archivo completo.
-2. Ir directo a "Fase 3 — Ventas — PARCIAL", punto 1 de "Pendiente".
-3. Seguir el orden de fases 3(resto)→4→5→6→7 tal como está aquí; no reabrir decisiones de
-   diseño salvo que aparezca un conflicto real con el esquema o el dominio.
+2. Ir directo a "Fase 5 — Logística — NO INICIADO".
+3. Seguir el orden de fases 5→6→7 tal como está aquí; no reabrir decisiones de diseño
+   salvo que aparezca un conflicto real con el esquema o el dominio.
 4. Compilar y correr tests después de cada módulo, no acumular fases sin verificar.

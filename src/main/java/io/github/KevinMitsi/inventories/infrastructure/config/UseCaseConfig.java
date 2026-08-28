@@ -16,6 +16,9 @@ import io.github.KevinMitsi.inventories.application.port.out.RoleRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.SaleRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.SupplierRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TokenProviderPort;
+import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.usecase.AuthenticationUseCase;
@@ -30,6 +33,8 @@ import io.github.KevinMitsi.inventories.domain.usecase.ProductUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.PurchaseOrderUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.SaleUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.SupplierUseCase;
+import io.github.KevinMitsi.inventories.domain.usecase.TransferIssueUseCase;
+import io.github.KevinMitsi.inventories.domain.usecase.TransferUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.UnitOfMeasureUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.UserUseCase;
 import org.springframework.context.annotation.Bean;
@@ -143,6 +148,24 @@ public class UseCaseConfig {
                                     InventoryMovementPoster inventoryMovementPoster) {
         return new SaleUseCase(saleRepositoryPort, branchRepositoryPort, productRepositoryPort,
                 priceListRepositoryPort, productPriceRepositoryPort, inventoryMovementPoster);
+    }
+
+    @Bean
+    public TransferUseCase transferUseCase(TransferRepositoryPort transferRepositoryPort,
+                                            TransferIssueRepositoryPort transferIssueRepositoryPort,
+                                            TransferStatusHistoryRepositoryPort transferStatusHistoryRepositoryPort,
+                                            BranchRepositoryPort branchRepositoryPort,
+                                            ProductRepositoryPort productRepositoryPort,
+                                            InventoryMovementPoster inventoryMovementPoster) {
+        return new TransferUseCase(transferRepositoryPort, transferIssueRepositoryPort,
+                transferStatusHistoryRepositoryPort, branchRepositoryPort, productRepositoryPort,
+                inventoryMovementPoster);
+    }
+
+    @Bean
+    public TransferIssueUseCase transferIssueUseCase(TransferIssueRepositoryPort transferIssueRepositoryPort,
+                                                       TransferRepositoryPort transferRepositoryPort) {
+        return new TransferIssueUseCase(transferIssueRepositoryPort, transferRepositoryPort);
     }
 
     @Bean
