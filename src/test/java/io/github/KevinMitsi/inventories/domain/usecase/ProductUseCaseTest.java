@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("ProductService")
+@DisplayName("ProductUseCase")
 class ProductServiceTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
@@ -59,7 +59,7 @@ class ProductServiceTest {
     private OrganizationRepositoryPort organizationRepository;
 
     @InjectMocks
-    private ProductService service;
+    private ProductUseCase service;
 
     private UnitOfMeasure bottle;
     private UnitOfMeasure box;

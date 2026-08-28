@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.command.RegisterInventoryEntryCommand;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("InventoryService")
+@DisplayName("InventoryUseCase")
 class InventoryServiceTest {
 
     private static final UUID BRANCH_ID = UUID.randomUUID();
@@ -56,12 +56,12 @@ class InventoryServiceTest {
     @Mock
     private InventoryMovementPoster poster;
 
-    private InventoryService service;
+    private InventoryUseCase service;
     private Product product;
 
     @BeforeEach
     void setUp() {
-        service = new InventoryService(inventoryRepository, movementRepository, branchRepository,
+        service = new InventoryUseCase(inventoryRepository, movementRepository, branchRepository,
                 productRepository, poster);
 
         product = Product.create(UUID.randomUUID(), null, "SKU-1", null, "Producto",

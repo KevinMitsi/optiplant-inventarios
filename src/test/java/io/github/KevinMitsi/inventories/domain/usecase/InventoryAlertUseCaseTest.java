@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("InventoryAlertService")
+@DisplayName("InventoryAlertUseCase")
 class InventoryAlertServiceTest {
 
     private static final UUID ALERT_ID = UUID.randomUUID();
@@ -34,12 +34,12 @@ class InventoryAlertServiceTest {
     @Mock
     private InventoryAlertRepositoryPort alertRepository;
 
-    private InventoryAlertService service;
+    private InventoryAlertUseCase service;
     private InventoryAlert alert;
 
     @BeforeEach
     void setUp() {
-        service = new InventoryAlertService(alertRepository);
+        service = new InventoryAlertUseCase(alertRepository);
         alert = InventoryAlert.open(UUID.randomUUID(), InventoryAlertType.LOW_STOCK,
                 Quantity.of("2"), Quantity.of("10"));
 

@@ -1,172 +1,56 @@
 package io.github.KevinMitsi.inventories.application.service;
 
-import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
-import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.ManagePurchaseOrderUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.QueryPurchaseOrderUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreatePurchaseOrderCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceivePurchaseOrderItemCommand;
 import io.github.KevinMitsi.inventories.application.port.in.query.PurchaseOrderSearchCriteria;
-import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
-import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
-import io.github.KevinMitsi.inventories.application.port.out.PurchaseOrderRepositoryPort;
-import io.github.KevinMitsi.inventories.application.port.out.SupplierRepositoryPort;
-import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
-import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
-import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
-import io.github.KevinMitsi.inventories.domain.model.Percentage;
-import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.PurchaseOrder;
-import io.github.KevinMitsi.inventories.domain.model.PurchaseOrderItem;
-import io.github.KevinMitsi.inventories.domain.model.Quantity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.github.KevinMitsi.inventories.domain.usecase.PurchaseOrderUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
-/**
- * Órdenes de compra: creación, confirmación y recepción de mercancía (EP-05).
- *
- * <p>Recibir una línea es la única operación que toca inventario, y lo hace en dos pasos que
- * deben quedar atómicos: primero el agregado {@link PurchaseOrder} valida y registra la
- * recepción sobre la línea, después este servicio postea el {@code PURCHASE_IN}
- * correspondiente a través de {@link InventoryMovementPoster}, convertido a unidad base y con
- * el costo neto de la línea (RF-21, RF-23).
- */
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class PurchaseOrderService implements ManagePurchaseOrderUseCase, QueryPurchaseOrderUseCase {
 
-    private static final Logger log = LoggerFactory.getLogger(PurchaseOrderService.class);
+    private final PurchaseOrderUseCase useCase;
 
-    private static final String BRANCH = "la sucursal";
-    private static final String SUPPLIER = "el proveedor";
-    private static final String PRODUCT = "el producto";
-    private static final String PRODUCT_UNIT = "la presentación del producto";
-    private static final String ORDER = "la orden de compra";
-
-    private final PurchaseOrderRepositoryPort purchaseOrderRepository;
-    private final BranchRepositoryPort branchRepository;
-    private final SupplierRepositoryPort supplierRepository;
-    private final ProductRepositoryPort productRepository;
-    private final InventoryMovementPoster poster;
-
-    PurchaseOrderService(PurchaseOrderRepositoryPort purchaseOrderRepository,
-                        BranchRepositoryPort branchRepository,
-                        SupplierRepositoryPort supplierRepository,
-                        ProductRepositoryPort productRepository,
-                        InventoryMovementPoster poster) {
-        this.purchaseOrderRepository = purchaseOrderRepository;
-        this.branchRepository = branchRepository;
-        this.supplierRepository = supplierRepository;
-        this.productRepository = productRepository;
-        this.poster = poster;
+    public PurchaseOrderService(PurchaseOrderUseCase useCase) {
+        this.useCase = useCase;
     }
 
     @Override
     public PurchaseOrder createPurchaseOrder(CreatePurchaseOrderCommand command) {
-        if (!branchRepository.existsById(command.branchId())) {
-            throw new ResourceNotFoundException(BRANCH, command.branchId());
-        }
-        if (!supplierRepository.existsById(command.supplierId())) {
-            throw new ResourceNotFoundException(SUPPLIER, command.supplierId());
-        }
-        if (purchaseOrderRepository.existsByBranchIdAndOrderNumber(command.branchId(), command.orderNumber())) {
-            throw new DuplicateResourceException(ORDER, "número", command.orderNumber());
-        }
-
-        List<PurchaseOrderItem> items = command.items().stream()
-                .map(this::toItem)
-                .toList();
-
-        PurchaseOrder order = PurchaseOrder.create(command.branchId(), command.supplierId(), command.createdBy(),
-                command.orderNumber(), command.orderDate(), command.paymentTermDays(), command.notes(), items);
-
-        PurchaseOrder saved = purchaseOrderRepository.save(order);
-        log.info("Orden de compra creada: id={}, número={}, líneas={}",
-                saved.getId(), saved.getOrderNumber(), saved.getItems().size());
-        return saved;
+        return useCase.createPurchaseOrder(command);
     }
 
     @Override
     public PurchaseOrder confirmPurchaseOrder(UUID purchaseOrderId) {
-        PurchaseOrder order = loadOrder(purchaseOrderId);
-        order.confirm();
-        return purchaseOrderRepository.save(order);
+        return useCase.confirmPurchaseOrder(purchaseOrderId);
     }
 
     @Override
     public PurchaseOrder cancelPurchaseOrder(UUID purchaseOrderId) {
-        PurchaseOrder order = loadOrder(purchaseOrderId);
-        order.cancel();
-        return purchaseOrderRepository.save(order);
+        return useCase.cancelPurchaseOrder(purchaseOrderId);
     }
 
     @Override
     public PurchaseOrder receiveItem(ReceivePurchaseOrderItemCommand command) {
-        PurchaseOrder order = loadOrder(command.purchaseOrderId());
-        PurchaseOrderItem item = order.findItemById(command.itemId())
-                .orElseThrow(() -> new ResourceNotFoundException("la línea de la orden de compra", command.itemId()));
-
-        Product product = requireProduct(item.getProductId());
-        ProductUnit productUnit = requireProductUnit(product, item.getProductUnitId());
-
-        Quantity receivedInOrderUnit = Quantity.of(command.quantityReceived());
-        order.receiveItem(item.getId(), receivedInOrderUnit);
-        PurchaseOrder saved = purchaseOrderRepository.save(order);
-
-        Quantity baseQuantity = receivedInOrderUnit.toBaseUnit(productUnit.getConversionFactor());
-        Money unitCostPerBaseUnit = item.netUnitPrice().divide(Quantity.of(productUnit.getConversionFactor()));
-
-        poster.post(new PostInventoryMovementCommand(saved.getBranchId(), item.getProductId(), product.getSku(),
-                InventoryMovementType.PURCHASE_IN, baseQuantity.value(), unitCostPerBaseUnit.amount(),
-                "Recepción de compra %s".formatted(saved.getOrderNumber()), command.userId(),
-                java.time.Instant.now(), saved.getId(), null, null, null));
-
-        log.info("Recepción registrada: orden={}, línea={}, cantidad={}",
-                saved.getOrderNumber(), item.getId(), receivedInOrderUnit);
-        return saved;
+        return useCase.receiveItem(command);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PurchaseOrder getPurchaseOrderById(UUID purchaseOrderId) {
-        return loadOrder(purchaseOrderId);
+        return useCase.getPurchaseOrderById(purchaseOrderId);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PageResult<PurchaseOrder> searchPurchaseOrders(PurchaseOrderSearchCriteria criteria, PageQuery pageQuery) {
-        return purchaseOrderRepository.search(criteria, pageQuery);
-    }
-
-    private PurchaseOrderItem toItem(CreatePurchaseOrderCommand.Item item) {
-        Product product = requireProduct(item.productId());
-        requireProductUnit(product, item.productUnitId());
-
-        return PurchaseOrderItem.create(item.productId(), item.productUnitId(), Quantity.of(item.quantity()),
-                Money.of(item.unitPrice()), Percentage.ofNullable(item.discountPercentage()));
-    }
-
-    private PurchaseOrder loadOrder(UUID purchaseOrderId) {
-        return purchaseOrderRepository.findById(purchaseOrderId)
-                .orElseThrow(() -> new ResourceNotFoundException(ORDER, purchaseOrderId));
-    }
-
-    private Product requireProduct(UUID productId) {
-        return productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private ProductUnit requireProductUnit(Product product, UUID productUnitId) {
-        return product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
+        return useCase.searchPurchaseOrders(criteria, pageQuery);
     }
 }

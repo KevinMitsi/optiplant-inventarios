@@ -10,19 +10,15 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Configuración de seguridad HTTP (EP-01, RF-01, RF-02, RNF-03).
- *
- * <p><b>Todo está cerrado salvo lo que se abre explícitamente.</b> La regla final es
- * {@code anyRequest().authenticated()}, de modo que un endpoint nuevo nace protegido. La
- * alternativa —abrir por omisión y cerrar lo sensible— convierte cada olvido en una fuga.
- */
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -44,13 +40,9 @@ public class SecurityConfig {
     private final SecurityErrorResponder errorResponder;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) {
         http
-                // Sin protección CSRF porque no hay cookies de sesión que el navegador
-                // adjunte por su cuenta. El token viaja en una cabecera que un sitio
-                // externo no puede añadir a una petición forjada, así que el vector que
-                // CSRF protege no existe aquí.
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
 
                 // Sin estado en servidor: cada petición se autentica por sí sola. Es lo que
                 // permite añadir instancias sin compartir sesiones entre ellas (RNF-08).
@@ -63,14 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
-
-                // Se sitúa antes del filtro de usuario y contraseña porque este sistema no
-                // autentica con formulario: cuando la cadena llegue a ese punto, la
-                // identidad ya debe estar establecida a partir del token.
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-
-                // Sin esto, un fallo de autenticación devolvería la página de error del
-                // contenedor en HTML, con una forma distinta al resto de errores de la API.
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((request, response, exception) ->
                                 errorResponder.writeUnauthorized(request, response))
@@ -79,11 +64,9 @@ public class SecurityConfig {
 
                 // Cabeceras de defensa en profundidad para la respuesta.
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.deny())
-                        .contentTypeOptions(options -> {
-                        })
-                        .cacheControl(cache -> {
-                        }));
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                        .contentTypeOptions(HeadersConfigurer.ContentTypeOptionsConfig::disable)
+                        .cacheControl(HeadersConfigurer.CacheControlConfig::disable));
 
         return http.build();
     }

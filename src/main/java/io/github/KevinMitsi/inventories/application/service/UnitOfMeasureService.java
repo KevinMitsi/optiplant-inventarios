@@ -1,9 +1,8 @@
 package io.github.KevinMitsi.inventories.application.service;
 
-import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.QueryUnitOfMeasureUseCase;
-import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
+import io.github.KevinMitsi.inventories.domain.usecase.UnitOfMeasureUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,25 +10,22 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional(rollbackFor = Exception.class)
 public class UnitOfMeasureService implements QueryUnitOfMeasureUseCase {
 
-    private static final String UNIT = "la unidad de medida";
+    private final UnitOfMeasureUseCase useCase;
 
-    private final UnitOfMeasureRepositoryPort unitRepository;
-
-    public UnitOfMeasureService(UnitOfMeasureRepositoryPort unitRepository) {
-        this.unitRepository = unitRepository;
+    public UnitOfMeasureService(UnitOfMeasureUseCase useCase) {
+        this.useCase = useCase;
     }
 
     @Override
     public UnitOfMeasure getUnitById(UUID unitId) {
-        return unitRepository.findById(unitId)
-                .orElseThrow(() -> new ResourceNotFoundException(UNIT, unitId));
+        return useCase.getUnitById(unitId);
     }
 
     @Override
     public List<UnitOfMeasure> getAllUnits() {
-        return unitRepository.findAll();
+        return useCase.getAllUnits();
     }
 }

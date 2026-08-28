@@ -87,20 +87,6 @@ inventories:
     default-page-size: 20
     max-page-size: 100
 
-  # Administrador inicial. Solo se crea si la instalacion no tiene ninguno: en una base con
-  # usuarios este bloque no hace nada, de modo que reiniciar no restablece una contrasena
-  # ya cambiada.
-  bootstrap:
-    enabled: ${BOOTSTRAP_ENABLED:true}
-    organization-code: ${BOOTSTRAP_ORG_CODE:OPTIPLANT}
-    organization-name: ${BOOTSTRAP_ORG_NAME:OptiPlant Consultores}
-    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@optiplant.local}
-    # La contrasena por defecto esta escrita en el codigo y por tanto es publica.
-    # Defina BOOTSTRAP_ADMIN_PASSWORD antes de exponer la aplicacion fuera de local.
-    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
-    admin-first-name: ${BOOTSTRAP_ADMIN_FIRST_NAME:Administrador}
-    admin-last-name: ${BOOTSTRAP_ADMIN_LAST_NAME:General}
-
 springdoc:
   api-docs:
     path: /v3/api-docs

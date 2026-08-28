@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Pruebas unitarias de {@link BranchService}.
+ * Pruebas unitarias de {@link BranchUseCase}.
  *
  * <p>Los puertos de salida se sustituyen por dobles, así que no interviene ni la base de
  * datos ni el contexto de Spring. Eso es posible precisamente porque el servicio depende de
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
  * de hacer cuando algo falla—, no las reglas del agregado, que tienen su propia clase.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BranchService")
+@DisplayName("BranchUseCase")
 class BranchServiceTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
@@ -58,7 +58,7 @@ class BranchServiceTest {
     private OrganizationRepositoryPort organizationRepository;
 
     @InjectMocks
-    private BranchService service;
+    private BranchUseCase service;
 
     private Branch existingBranch;
 

@@ -1,4 +1,4 @@
-package io.github.KevinMitsi.inventories.application.service;
+package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.InvalidCredentialsException;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Pruebas unitarias de {@link UserService}.
+ * Pruebas unitarias de {@link UserUseCase}.
  *
  * <p>El grueso se dedica al invariante que ninguna restricción de la base puede expresar:
  * que la organización nunca se quede sin un administrador activo. Se comprueban los dos
@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("UserService")
+@DisplayName("UserUseCase")
 class UserServiceTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
@@ -71,7 +71,7 @@ class UserServiceTest {
     private PasswordHasherPort passwordHasher;
 
     @InjectMocks
-    private UserService service;
+    private UserUseCase service;
 
     private Role adminRole;
     private Role managerRole;
