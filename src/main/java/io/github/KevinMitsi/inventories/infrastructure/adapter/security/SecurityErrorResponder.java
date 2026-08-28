@@ -1,6 +1,5 @@
 package io.github.KevinMitsi.inventories.infrastructure.adapter.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.KevinMitsi.inventories.domain.exception.DomainException;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.Instant;

@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -45,6 +47,10 @@ public class BranchJpaEntity extends AuditableJpaEntity {
     @Column(name = "city", length = 100)
     private String city;
 
+    // Sin @JdbcTypeCode, Hibernate valida la columna como VARCHAR pese al columnDefinition
+    // literal: la migración la declara CHAR(2) (bpchar), y la validación de esquema al
+    // arrancar fallaría por el desajuste de tipo.
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "country_code", columnDefinition = "char(2)", length = 2)
     private String countryCode;
 

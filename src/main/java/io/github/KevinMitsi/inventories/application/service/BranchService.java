@@ -11,11 +11,13 @@ import io.github.KevinMitsi.inventories.domain.model.Branch;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.usecase.BranchUseCase;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Primary
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class BranchService implements CreateBranchUseCase, UpdateBranchUseCase, ChangeBranchStatusUseCase, QueryBranchUseCase {

@@ -49,8 +49,12 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
+    # Jackson 3 (spring-boot-starter-jackson, desde Boot 4): la fecha se mueve del enum
+    # SerializationFeature al nuevo DateTimeFeature, bajo datatype.datetime.
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
     serialization:
-      write-dates-as-timestamps: false
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false

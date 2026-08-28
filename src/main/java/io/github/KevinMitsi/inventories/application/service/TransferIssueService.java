@@ -5,12 +5,14 @@ import io.github.KevinMitsi.inventories.application.port.in.QueryTransferIssueUs
 import io.github.KevinMitsi.inventories.application.port.in.command.ResolveTransferIssueCommand;
 import io.github.KevinMitsi.inventories.domain.model.TransferIssue;
 import io.github.KevinMitsi.inventories.domain.usecase.TransferIssueUseCase;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
+@Primary
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class TransferIssueService implements ManageTransferIssueUseCase, QueryTransferIssueUseCase {

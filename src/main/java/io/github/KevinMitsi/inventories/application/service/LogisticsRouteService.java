@@ -10,12 +10,14 @@ import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.RouteComplianceSummary;
 import io.github.KevinMitsi.inventories.domain.usecase.LogisticsRouteUseCase;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
+@Primary
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class LogisticsRouteService implements ManageLogisticsRouteUseCase, QueryLogisticsRouteUseCase {
