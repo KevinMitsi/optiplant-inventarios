@@ -66,12 +66,13 @@ spring:
   mvc:
     problemdetails:
       enabled: true               # RFC 7807 para los errores no capturados por el handler
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
 
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    include-message: never
-    include-stacktrace: never     # RNF-03: nunca filtrar trazas al cliente
   shutdown: graceful
 
 # --- Configuracion propia de la aplicacion ---

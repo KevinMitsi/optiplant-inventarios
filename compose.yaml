@@ -1,9 +1,45 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: 'postgres:17-alpine'
+    container_name: inventories-postgres
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - POSTGRES_DB=${POSTGRES_DB:-mydatabase}
+      - POSTGRES_USER=${POSTGRES_USER:-myuser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secret}
     ports:
-      - '5432'
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventories-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-mydatabase}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: kevinmitsi/inventories:v1
+    container_name: inventories-app
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - POSTGRES_DB=${POSTGRES_DB:-mydatabase}
+      - POSTGRES_USER=${POSTGRES_USER:-myuser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secret}
+      - JWT_SECRET=${JWT_SECRET:-desarrollo-local-clave-no-apta-para-produccion-cambiar-por-variable-de-entorno}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@admin.com}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-admin123}
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventories-net
+
+networks:
+  inventories-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
