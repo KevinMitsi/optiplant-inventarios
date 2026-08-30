@@ -24,6 +24,7 @@ import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryP
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.usecase.AdminBootstrapUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.AuthenticationUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.BranchUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.CarrierUseCase;
@@ -203,5 +204,14 @@ public class UseCaseConfig {
                                     PasswordHasherPort passwordHasherPort) {
         return new UserUseCase(
                 userRepositoryPort, roleRepositoryPort, branchRepositoryPort, organizationRepositoryPort, passwordHasherPort);
+    }
+
+    @Bean
+    public AdminBootstrapUseCase adminBootstrapUseCase(OrganizationRepositoryPort organizationRepositoryPort,
+                                                          RoleRepositoryPort roleRepositoryPort,
+                                                          UserRepositoryPort userRepositoryPort,
+                                                          PasswordHasherPort passwordHasherPort) {
+        return new AdminBootstrapUseCase(
+                organizationRepositoryPort, roleRepositoryPort, userRepositoryPort, passwordHasherPort);
     }
 }
