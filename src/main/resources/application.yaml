@@ -90,6 +90,13 @@ inventories:
   pagination:
     default-page-size: 20
     max-page-size: 100
+  bootstrap:
+    admin:
+      # Administrador inicial, creado en código (no en migración) si todavía no existe.
+      # Valores por omisión los que exige el entregable de la prueba tecnica; cambiar via
+      # BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD fuera de este entorno.
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@admin.com}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
 
 springdoc:
   api-docs:
