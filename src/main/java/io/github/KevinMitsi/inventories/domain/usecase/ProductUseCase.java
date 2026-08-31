@@ -127,6 +127,11 @@ public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase
         Product product = loadProduct(command.productId());
         product.changeBaseUnit(command.newBaseProductUnitId(), command.previousBaseNewFactor());
 
+        // Degrada la base anterior en su propia sentencia antes del merge del agregado: el
+        // orden de flush de Hibernate entre hijos del mismo tipo no está garantizado y podría
+        // promover la nueva base antes de degradar la anterior, violando
+        // ux_product_unit_single_base.
+        productRepository.clearBaseUnit(command.productId());
         Product saved = productRepository.save(product);
         log.info(() -> "Unidad base cambiada en el producto %s".formatted(saved.getSku()));
         return saved;

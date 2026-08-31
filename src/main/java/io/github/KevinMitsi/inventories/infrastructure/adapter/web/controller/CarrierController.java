@@ -22,14 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -108,14 +101,14 @@ public class CarrierController {
         return mapper.toResponse(manageCarrierUseCase.updateCarrier(mapper.toCommand(carrierId, request)));
     }
 
-    @PostMapping("/carriers/{carrierId}/deactivation")
+    @PatchMapping("/carriers/{carrierId}/deactivation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "deactivateCarrier", summary = "Dar de baja un transportista")
     public CarrierDtos.CarrierResponse deactivateCarrier(@PathVariable UUID carrierId) {
         return mapper.toResponse(manageCarrierUseCase.deactivateCarrier(carrierId));
     }
 
-    @PostMapping("/carriers/{carrierId}/activation")
+    @PatchMapping("/carriers/{carrierId}/activation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "activateCarrier", summary = "Reactivar un transportista")
     public CarrierDtos.CarrierResponse activateCarrier(@PathVariable UUID carrierId) {

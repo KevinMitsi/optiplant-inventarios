@@ -13,7 +13,7 @@ import jakarta.validation.constraints.Size;
  * Validation se quedan en la frontera, y cambiar el contrato de la API no obliga a tocar
  * la capa de aplicación.
  *
- * <p>La validación de aquí es de formato: obligatoriedad, longitud y patrón, todo lo que
+ * <p>La validación de aquí es de formato: obligatoriedad, longitud y patrón, all lo que
  * puede juzgarse mirando un campo por separado. Lo que exige comparar campos entre sí o
  * consultar el estado ya guardado —que el código no esté repetido, que la organización
  * exista— se comprueba en el dominio y en el servicio, no aquí.

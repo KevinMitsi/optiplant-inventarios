@@ -22,14 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -104,21 +97,21 @@ public class PriceListController {
         return mapper.toResponse(managePriceListUseCase.updatePriceList(mapper.toCommand(priceListId, request)));
     }
 
-    @PostMapping("/price-lists/{priceListId}/deactivation")
+    @PatchMapping("/price-lists/{priceListId}/deactivation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "deactivatePriceList", summary = "Dar de baja una lista de precios")
     public PriceListDtos.PriceListResponse deactivatePriceList(@PathVariable UUID priceListId) {
         return mapper.toResponse(managePriceListUseCase.deactivatePriceList(priceListId));
     }
 
-    @PostMapping("/price-lists/{priceListId}/activation")
+    @PatchMapping("/price-lists/{priceListId}/activation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "activatePriceList", summary = "Reactivar una lista de precios")
     public PriceListDtos.PriceListResponse activatePriceList(@PathVariable UUID priceListId) {
         return mapper.toResponse(managePriceListUseCase.activatePriceList(priceListId));
     }
 
-    @PostMapping(value = "/price-lists/{priceListId}/product-prices", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping("/price-lists/{priceListId}/product-prices")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "setProductPrice", summary = "Fijar el precio de un producto en la lista (HU-25)",
             description = "Crea el precio si no existe, o lo reemplaza si ya estaba fijado para esa "

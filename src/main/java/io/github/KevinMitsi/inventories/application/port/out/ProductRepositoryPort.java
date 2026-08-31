@@ -12,6 +12,14 @@ public interface ProductRepositoryPort {
 
     Product save(Product product);
 
+    /**
+     * Quita la marca de base a las presentaciones del producto en su propia sentencia, antes de
+     * que {@link #save} intente escribir la nueva base. Evita violar {@code
+     * ux_product_unit_single_base} cuando el orden de flush del ORM no coincide con el orden de
+     * negocio (degradar la anterior, promover la nueva).
+     */
+    void clearBaseUnit(UUID productId);
+
     /** Carga el producto con sus presentaciones: el agregado nunca se devuelve incompleto. */
     Optional<Product> findById(UUID id);
 
