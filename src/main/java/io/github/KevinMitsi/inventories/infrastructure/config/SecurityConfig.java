@@ -3,6 +3,7 @@ package io.github.KevinMitsi.inventories.infrastructure.config;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.JwtAuthenticationFilter;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.SecurityErrorResponder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 
 @Configuration
@@ -39,10 +45,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SecurityErrorResponder errorResponder;
 
+    /** Orígenes del frontend admitidos para CORS, inyectados por variable de entorno. */
+    @Value("${app.cors.allowed-origins}")
+    private List<String> corsAllowedOrigins;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Sin estado en servidor: cada petición se autentica por sí sola. Es lo que
                 // permite añadir instancias sin compartir sesiones entre ellas (RNF-08).
@@ -85,5 +97,23 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Orígenes permitidos vienen de {@code app.cors.allowed-origins} (env var
+     * {@code APP_CORS_ALLOWED_ORIGINS}, lista separada por comas) para poder variar el
+     * dominio del frontend por entorno sin tocar código.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(corsAllowedOrigins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

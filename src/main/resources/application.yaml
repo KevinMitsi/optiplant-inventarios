@@ -76,6 +76,12 @@ server:
   shutdown: graceful
 
 # --- Configuracion propia de la aplicacion ---
+app:
+  cors:
+    # Origenes del frontend admitidos para CORS. Lista separada por comas via variable de
+    # entorno CORS_ALLOWED_ORIGINS; el valor por omision solo sirve para desarrollo local.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 inventories:
   security:
     jwt:
