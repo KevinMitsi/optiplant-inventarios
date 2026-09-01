@@ -66,15 +66,22 @@ spring:
   mvc:
     problemdetails:
       enabled: true               # RFC 7807 para los errores no capturados por el handler
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
 
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    include-message: never
-    include-stacktrace: never     # RNF-03: nunca filtrar trazas al cliente
   shutdown: graceful
 
 # --- Configuracion propia de la aplicacion ---
+app:
+  cors:
+    # Origenes del frontend admitidos para CORS. Lista separada por comas via variable de
+    # entorno CORS_ALLOWED_ORIGINS; el valor por omision solo sirve para desarrollo local.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 inventories:
   security:
     jwt:

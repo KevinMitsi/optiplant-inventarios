@@ -4,6 +4,7 @@ import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entit
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -39,4 +40,15 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, UU
                AND p.active = true
             """)
     long countActiveByCategoryId(@Param("categoryId") UUID categoryId);
+
+    /**
+     * Quita la marca de base a las presentaciones del producto, en su propia sentencia SQL.
+     *
+     * <p>Se ejecuta antes del merge del agregado para evitar que Hibernate, cuyo orden de
+     * flush entre entidades hijas del mismo tipo no está garantizado, intente promocionar la
+     * nueva base antes de degradar la anterior y viole {@code ux_product_unit_single_base}.
+     */
+    @Modifying
+    @Query("UPDATE ProductUnitJpaEntity pu SET pu.baseUnit = false WHERE pu.product.id = :productId AND pu.baseUnit = true")
+    void clearBaseUnit(@Param("productId") UUID productId);
 }

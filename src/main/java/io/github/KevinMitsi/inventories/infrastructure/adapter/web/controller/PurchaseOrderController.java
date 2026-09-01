@@ -22,13 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -107,7 +101,7 @@ public class PurchaseOrderController {
         return mapper.toResponse(queryPurchaseOrderUseCase.getPurchaseOrderById(purchaseOrderId));
     }
 
-    @PostMapping("/purchase-orders/{purchaseOrderId}/confirmation")
+    @PatchMapping("/purchase-orders/{purchaseOrderId}/confirmation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
     @Operation(operationId = "confirmPurchaseOrder", summary = "Confirmar la orden con el proveedor",
             description = "A partir de aquí puede empezar a recibirse mercancía.")
@@ -115,7 +109,7 @@ public class PurchaseOrderController {
         return mapper.toResponse(managePurchaseOrderUseCase.confirmPurchaseOrder(purchaseOrderId));
     }
 
-    @PostMapping("/purchase-orders/{purchaseOrderId}/cancellation")
+    @PatchMapping("/purchase-orders/{purchaseOrderId}/cancellation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "cancelPurchaseOrder", summary = "Cancelar la orden",
             description = "Solo antes de recibir cualquier mercancía.")
@@ -123,7 +117,7 @@ public class PurchaseOrderController {
         return mapper.toResponse(managePurchaseOrderUseCase.cancelPurchaseOrder(purchaseOrderId));
     }
 
-    @PostMapping(value = "/purchase-orders/{purchaseOrderId}/items/{itemId}/receipt",
+    @PatchMapping(value = "/purchase-orders/{purchaseOrderId}/items/{itemId}/receipt",
                 consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
     @Operation(operationId = "receivePurchaseOrderItem", summary = "Confirmar la recepción de una línea (HU-19)",

@@ -35,6 +35,11 @@ public class ProductPersistenceAdapter implements ProductRepositoryPort {
     }
 
     @Override
+    public void clearBaseUnit(UUID productId) {
+        repository.clearBaseUnit(productId);
+    }
+
+    @Override
     public Optional<Product> findById(UUID id) {
         return repository.findById(id).map(mapper::toDomain);
     }

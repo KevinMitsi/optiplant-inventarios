@@ -24,13 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -109,7 +103,7 @@ public class TransferController {
         return mapper.toResponse(queryTransferUseCase.getTransferById(transferId));
     }
 
-    @PostMapping(value = "/transfers/{transferId}/approval", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/transfers/{transferId}/approval", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "approveTransfer", summary = "Aprobar una transferencia solicitada (HU-29)",
             description = "Cada línea se aprueba por la cantidad indicada, o por la solicitada "

@@ -28,14 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -219,7 +212,7 @@ public class ProductController {
         return mapper.toResponse(manageProductUseCase.addUnit(mapper.toCommand(productId, request)));
     }
 
-    @PutMapping(value = "/products/{productId}/units/{productUnitId}/factor",
+    @PatchMapping(value = "/products/{productId}/units/{productUnitId}/factor",
                 consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "changeProductUnitFactor", summary = "Cambiar el factor de una presentación",
@@ -243,7 +236,7 @@ public class ProductController {
                 mapper.toFactorCommand(productId, productUnitId, request.conversionFactor())));
     }
 
-    @PostMapping(value = "/products/{productId}/base-unit", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/products/{productId}/base-unit", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "changeBaseUnit", summary = "Cambiar la unidad base",
             description = """
@@ -259,6 +252,8 @@ public class ProductController {
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "422",
                     description = "La presentación indicada está dada de baja o no pertenece al producto.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Conflicto al designar la nueva unidad base.",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     public ProductDtos.ProductResponse changeBaseUnit(
@@ -285,7 +280,7 @@ public class ProductController {
         return mapper.toResponse(manageProductUseCase.deactivateUnit(productId, productUnitId));
     }
 
-    @PostMapping("/products/{productId}/units/{productUnitId}/activation")
+    @PatchMapping("/products/{productId}/units/{productUnitId}/activation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "activateProductUnit", summary = "Reactivar una presentación")
     @ApiResponse(responseCode = "200", description = "Presentación reactivada.",
@@ -295,7 +290,7 @@ public class ProductController {
         return mapper.toResponse(manageProductUseCase.activateUnit(productId, productUnitId));
     }
 
-    @PostMapping("/products/{productId}/deactivation")
+    @PatchMapping("/products/{productId}/deactivation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "deactivateProduct", summary = "Dar de baja un producto",
             description = "Baja lógica. El producto aparece en ventas, compras y movimientos "
@@ -310,7 +305,7 @@ public class ProductController {
         return mapper.toResponse(manageProductUseCase.deactivateProduct(productId));
     }
 
-    @PostMapping("/products/{productId}/activation")
+    @PatchMapping("/products/{productId}/activation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "activateProduct", summary = "Reactivar un producto")
     @ApiResponse(responseCode = "200", description = "Producto reactivado.",

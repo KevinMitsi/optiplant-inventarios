@@ -1,6 +1,8 @@
 package io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -39,7 +41,9 @@ public final class LogisticsRouteDtos {
             @PositiveOrZero(message = "El costo estimado no puede ser negativo.")
             BigDecimal estimatedCost,
 
-            @Schema(description = "Prioridad relativa entre rutas; mayor es más prioritaria.", defaultValue = "0")
+            @Schema(description = "Prioridad relativa entre rutas: 0 (baja) a 3 (extrema).", defaultValue = "0")
+            @Min(value = 0, message = "La prioridad debe estar entre 0 y 3.")
+            @Max(value = 3, message = "La prioridad debe estar entre 0 y 3.")
             Short priority
     ) {
     }
@@ -57,6 +61,9 @@ public final class LogisticsRouteDtos {
             @PositiveOrZero(message = "El costo estimado no puede ser negativo.")
             BigDecimal estimatedCost,
 
+            @Schema(description = "Prioridad relativa entre rutas: 0 (baja) a 3 (extrema).", defaultValue = "0")
+            @Min(value = 0, message = "La prioridad debe estar entre 0 y 3.")
+            @Max(value = 3, message = "La prioridad debe estar entre 0 y 3.")
             Short priority
     ) {
     }
