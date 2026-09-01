@@ -64,7 +64,7 @@ public class PriceListService implements ManagePriceListUseCase, QueryPriceListU
     }
 
     @Override
-    public ProductPrice getProductPrice(UUID priceListId, UUID productId, UUID productUnitId) {
-        return useCase.getProductPrice(priceListId, productId, productUnitId);
+    public ProductPrice getProductPrice(UUID priceListId, UUID productId) {
+        return useCase.getProductPrice(priceListId, productId);
     }
 }

@@ -27,7 +27,7 @@ public interface TransferWebMapper {
     default CreateTransferCommand toCommand(UUID originBranchId, UUID requestedBy,
                                             TransferDtos.CreateTransferRequest request) {
         List<CreateTransferCommand.Item> items = request.items().stream()
-                .map(item -> new CreateTransferCommand.Item(item.productId(), item.productUnitId(), item.quantity()))
+                .map(item -> new CreateTransferCommand.Item(item.productId(), item.quantity()))
                 .toList();
 
         return new CreateTransferCommand(originBranchId, request.destinationBranchId(), requestedBy,

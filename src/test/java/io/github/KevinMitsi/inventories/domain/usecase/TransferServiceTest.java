@@ -95,7 +95,7 @@ class TransferServiceTest {
     }
 
     private Transfer transferInPreparation() {
-        TransferItem item = TransferItem.create(product.getId(), product.requireBaseUnit().getId(), Quantity.of("10"));
+        TransferItem item = TransferItem.create(product.getId(), Quantity.of("10"));
         Transfer transfer = Transfer.create(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0001", TransferPriority.NORMAL,
                 null, List.of(item));
         transfer.approve(USER_ID, java.util.Map.of());
@@ -110,8 +110,7 @@ class TransferServiceTest {
         @Test
         @DisplayName("crea la transferencia cuando el número no está en uso")
         void createsTransfer() {
-            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(),
-                    product.requireBaseUnit().getId(), new BigDecimal("5"));
+            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(), new BigDecimal("5"));
             CreateTransferCommand command = new CreateTransferCommand(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0002",
                     "HIGH", null, List.of(item));
 
@@ -125,8 +124,7 @@ class TransferServiceTest {
         @DisplayName("rechaza un número de transferencia duplicado")
         void rejectsDuplicateNumber() {
             when(transferRepository.existsByTransferNumber("TR-0002")).thenReturn(true);
-            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(),
-                    product.requireBaseUnit().getId(), new BigDecimal("5"));
+            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(), new BigDecimal("5"));
             CreateTransferCommand command = new CreateTransferCommand(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0002",
                     null, null, List.of(item));
 

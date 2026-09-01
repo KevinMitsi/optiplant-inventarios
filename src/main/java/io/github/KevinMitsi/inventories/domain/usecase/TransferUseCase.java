@@ -23,7 +23,6 @@ import io.github.KevinMitsi.inventories.domain.model.LogisticsRoute;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import io.github.KevinMitsi.inventories.domain.model.Transfer;
 import io.github.KevinMitsi.inventories.domain.model.TransferIssue;
@@ -221,22 +220,19 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
         return transferRepository.search(criteria, pageQuery);
     }
 
-    private void postMovement(UUID branchId, TransferItem item, Quantity quantityInLineUnit,
+    private void postMovement(UUID branchId, TransferItem item, Quantity quantity,
                               InventoryMovementType type, Transfer transfer, UUID userId) {
         Product product = requireProduct(item.getProductId());
-        ProductUnit productUnit = requireProductUnit(product, item.getProductUnitId());
-        Quantity baseQuantity = quantityInLineUnit.toBaseUnit(productUnit.getConversionFactor());
 
         poster.post(new PostInventoryMovementCommand(branchId, item.getProductId(), product.getSku(), type,
-                baseQuantity.value(), null, "Transferencia %s".formatted(transfer.getTransferNumber()), userId,
+                quantity.value(), null, "Transferencia %s".formatted(transfer.getTransferNumber()), userId,
                 Instant.now(), null, null, transfer.getId(), null));
     }
 
     private TransferItem toItem(CreateTransferCommand.Item item) {
-        Product product = requireProduct(item.productId());
-        requireProductUnit(product, item.productUnitId());
+        requireProduct(item.productId());
 
-        return TransferItem.create(item.productId(), item.productUnitId(), Quantity.of(item.quantity()));
+        return TransferItem.create(item.productId(), Quantity.of(item.quantity()));
     }
 
     private Map<UUID, Quantity> toQuantityMap(Map<UUID, BigDecimal> raw) {
@@ -258,11 +254,5 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
     private Product requireProduct(UUID productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private ProductUnit requireProductUnit(Product product, UUID productUnitId) {
-        return product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
     }
 }

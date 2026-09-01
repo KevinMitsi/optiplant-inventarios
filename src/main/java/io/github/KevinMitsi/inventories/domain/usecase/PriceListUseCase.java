@@ -89,19 +89,16 @@ public class PriceListUseCase implements ManagePriceListUseCase, QueryPriceListU
     @Override
     public ProductPrice setProductPrice(SetProductPriceCommand command) {
         loadPriceList(command.priceListId());
-        Product product = requireProduct(command.productId());
-        requireProductUnit(product, command.productUnitId());
+        requireProduct(command.productId());
 
         ProductPrice price = productPriceRepository
-                .findByPriceListIdAndProductIdAndProductUnitId(
-                        command.priceListId(), command.productId(), command.productUnitId())
+                .findByPriceListIdAndProductId(command.priceListId(), command.productId())
                 .map(existing -> {
                     existing.changePrice(Money.of(command.price()));
                     return existing;
                 })
                 .orElseGet(() -> ProductPrice.create(
-                        command.priceListId(), command.productId(), command.productUnitId(),
-                        Money.of(command.price())));
+                        command.priceListId(), command.productId(), Money.of(command.price())));
 
         ProductPrice saved = productPriceRepository.save(price);
         log.info(() -> "Precio fijado: lista=%s, producto=%s, precio=%s"
@@ -120,8 +117,8 @@ public class PriceListUseCase implements ManagePriceListUseCase, QueryPriceListU
     }
 
     @Override
-    public ProductPrice getProductPrice(UUID priceListId, UUID productId, UUID productUnitId) {
-        return productPriceRepository.findByPriceListIdAndProductIdAndProductUnitId(priceListId, productId, productUnitId)
+    public ProductPrice getProductPrice(UUID priceListId, UUID productId) {
+        return productPriceRepository.findByPriceListIdAndProductId(priceListId, productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT_PRICE,
                         "lista %s / producto %s".formatted(priceListId, productId)));
     }
@@ -131,14 +128,8 @@ public class PriceListUseCase implements ManagePriceListUseCase, QueryPriceListU
                 .orElseThrow(() -> new ResourceNotFoundException(PRICE_LIST, priceListId));
     }
 
-    private Product requireProduct(UUID productId) {
-        return productRepository.findById(productId)
+    private void requireProduct(UUID productId) {
+        productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private void requireProductUnit(Product product, UUID productUnitId) {
-        product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
     }
 }

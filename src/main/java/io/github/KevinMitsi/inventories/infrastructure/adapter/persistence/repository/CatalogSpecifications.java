@@ -58,6 +58,14 @@ public final class CatalogSpecifications {
                         builder.like(builder.lower(root.get("barcode")), pattern)));
             }
 
+            switch (criteria.scope()) {
+                case PRINCIPALS_ONLY -> predicates.add(root.get("parentProductId").isNull());
+                case VARIANTS_ONLY -> predicates.add(root.get("parentProductId").isNotNull());
+                case ALL -> {
+                    // Sin filtro: principales y variantes son igual de vendibles e inventariables.
+                }
+            }
+
             return builder.and(predicates.toArray(new Predicate[0]));
         };
     }

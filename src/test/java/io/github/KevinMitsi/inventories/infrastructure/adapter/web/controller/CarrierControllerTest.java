@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -130,12 +131,12 @@ class CarrierControllerTest extends MockMvcTestSupport {
         User admin = createAdmin(organization);
         CarrierDtos.CarrierResponse created = createCarrier(organization, admin);
 
-        mockMvc.perform(post("/api/v1/carriers/{carrierId}/deactivation", created.id())
+        mockMvc.perform(patch("/api/v1/carriers/{carrierId}/deactivation", created.id())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(false)));
 
-        mockMvc.perform(post("/api/v1/carriers/{carrierId}/activation", created.id())
+        mockMvc.perform(patch("/api/v1/carriers/{carrierId}/activation", created.id())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(true)));

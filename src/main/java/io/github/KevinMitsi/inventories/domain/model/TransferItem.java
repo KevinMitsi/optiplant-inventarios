@@ -18,32 +18,30 @@ public final class TransferItem {
 
     private final UUID id;
     private final UUID productId;
-    private final UUID productUnitId;
     private final Quantity requestedQuantity;
 
     private Quantity approvedQuantity;
     private Quantity shippedQuantity;
     private Quantity receivedQuantity;
 
-    private TransferItem(UUID id, UUID productId, UUID productUnitId, Quantity requestedQuantity,
+    private TransferItem(UUID id, UUID productId, Quantity requestedQuantity,
                          Quantity approvedQuantity, Quantity shippedQuantity, Quantity receivedQuantity) {
         this.id = Objects.requireNonNull(id, "El identificador de la línea no puede ser nulo.");
         this.productId = Objects.requireNonNull(productId, "La línea debe referenciar un producto.");
-        this.productUnitId = Objects.requireNonNull(productUnitId, "La línea debe referenciar una presentación.");
         this.requestedQuantity = requirePositive(requestedQuantity);
         this.approvedQuantity = approvedQuantity;
         this.shippedQuantity = shippedQuantity;
         this.receivedQuantity = receivedQuantity;
     }
 
-    public static TransferItem create(UUID productId, UUID productUnitId, Quantity requestedQuantity) {
-        return new TransferItem(UUID.randomUUID(), productId, productUnitId, requestedQuantity, null, null, null);
+    public static TransferItem create(UUID productId, Quantity requestedQuantity) {
+        return new TransferItem(UUID.randomUUID(), productId, requestedQuantity, null, null, null);
     }
 
-    public static TransferItem reconstitute(UUID id, UUID productId, UUID productUnitId, Quantity requestedQuantity,
+    public static TransferItem reconstitute(UUID id, UUID productId, Quantity requestedQuantity,
                                             Quantity approvedQuantity, Quantity shippedQuantity,
                                             Quantity receivedQuantity) {
-        return new TransferItem(id, productId, productUnitId, requestedQuantity, approvedQuantity, shippedQuantity,
+        return new TransferItem(id, productId, requestedQuantity, approvedQuantity, shippedQuantity,
                 receivedQuantity);
     }
 
@@ -113,10 +111,6 @@ public final class TransferItem {
 
     public UUID getProductId() {
         return productId;
-    }
-
-    public UUID getProductUnitId() {
-        return productUnitId;
     }
 
     public Quantity getRequestedQuantity() {

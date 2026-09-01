@@ -63,6 +63,11 @@ Category ──< Product ──< ProductUnit >── UnitOfMeasure
               (raíz)      (hija)          (catálogo global)
 ```
 
+> **DEC-17 a DEC-20 están derogadas.** `ProductUnit`, la unidad base y el factor de
+> conversión se retiraron en la fase 6: cada producto se cuenta en una sola unidad y las
+> presentaciones son variantes, es decir productos completos con stock y precio propios.
+> Ver `PHASE6-CATALOGO-VARIANTES.md`. Lo que sigue documenta el diseño anterior.
+
 ### DEC-17 — `Product` es agregado raíz de sus presentaciones
 
 `Product` **contiene** su lista de `ProductUnit`, en lugar de tratarlas como entidades

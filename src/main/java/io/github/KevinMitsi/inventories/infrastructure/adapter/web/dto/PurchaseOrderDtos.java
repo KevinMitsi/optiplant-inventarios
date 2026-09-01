@@ -57,10 +57,6 @@ public final class PurchaseOrderDtos {
                 @NotNull(message = "El producto de la línea es obligatorio.")
                 UUID productId,
 
-                @Schema(description = "Presentación en la que se compra (puede no ser la unidad base).")
-                @NotNull(message = "La presentación de la línea es obligatoria.")
-                UUID productUnitId,
-
                 @NotNull(message = "La cantidad de la línea es obligatoria.")
                 @Positive(message = "La cantidad debe ser mayor que cero.")
                 BigDecimal quantity,
@@ -97,7 +93,7 @@ public final class PurchaseOrderDtos {
     ) {
         @Schema(name = "PurchaseOrderItemResponse")
         public record ItemResponse(
-                UUID id, UUID productId, UUID productUnitId, BigDecimal quantity, BigDecimal receivedQuantity,
+                UUID id, UUID productId, BigDecimal quantity, BigDecimal receivedQuantity,
                 BigDecimal unitPrice, BigDecimal discountPercentage
         ) {
         }

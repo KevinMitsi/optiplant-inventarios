@@ -403,6 +403,14 @@ Ejemplos:
 
 # 7.4 `product_unit`
 
+> **DEROGADA.** La tabla `product_unit` se eliminó en la migración `V3`. Cada producto se
+> cuenta ahora en una única unidad (`product.unit_id`, sin factor de conversión) y las
+> presentaciones distintas de un artículo son productos completos enlazados por
+> `product.parent_product_id`. Lo mismo vale para las columnas `product_unit_id` de
+> `sale_item`, `purchase_order_item`, `transfer_item` y `product_price`, también eliminadas.
+> La referencia vigente es `PHASE6-CATALOGO-VARIANTES.md`. Esta sección se conserva como
+> registro del diseño anterior.
+
 Resuelve la relación muchos-a-muchos:
 
 ```text

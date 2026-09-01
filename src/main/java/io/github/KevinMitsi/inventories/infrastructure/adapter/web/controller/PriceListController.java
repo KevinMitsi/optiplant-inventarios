@@ -128,9 +128,8 @@ public class PriceListController {
     @Operation(operationId = "getProductPrice", summary = "Consultar el precio de un producto en la lista")
     public PriceListDtos.ProductPriceResponse getProductPrice(
             @PathVariable UUID priceListId,
-            @RequestParam UUID productId,
-            @RequestParam UUID productUnitId) {
+            @RequestParam UUID productId) {
 
-        return mapper.toResponse(queryPriceListUseCase.getProductPrice(priceListId, productId, productUnitId));
+        return mapper.toResponse(queryPriceListUseCase.getProductPrice(priceListId, productId));
     }
 }

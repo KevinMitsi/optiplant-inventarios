@@ -24,7 +24,7 @@ class SaleTest {
 
     @BeforeEach
     void setUp() {
-        item = SaleItem.create(UUID.randomUUID(), UUID.randomUUID(), Quantity.of("10"), Money.of("50.00"),
+        item = SaleItem.create(UUID.randomUUID(), Quantity.of("10"), Money.of("50.00"),
                 Percentage.ZERO);
     }
 
@@ -98,8 +98,7 @@ class SaleTest {
         @Test
         @DisplayName("suma los subtotales netos de cada línea")
         void sumsNetSubtotals() {
-            SaleItem discounted = SaleItem.create(UUID.randomUUID(), UUID.randomUUID(), Quantity.of("2"),
-                    Money.of("100.00"), Percentage.of("10"));
+            SaleItem discounted = SaleItem.create(UUID.randomUUID(), Quantity.of("2"), Money.of("100.00"), Percentage.of("10"));
             Sale sale = Sale.create(BRANCH_ID, CREATED_BY, null, "V-0003", Instant.now(), null,
                     List.of(item, discounted));
 

@@ -2,14 +2,16 @@ package io.github.KevinMitsi.inventories.domain.usecase;
 
 import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceException;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
-import io.github.KevinMitsi.inventories.application.port.in.command.AddProductUnitCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AddProductVariantCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateProductCommand;
+import io.github.KevinMitsi.inventories.application.port.in.result.ProductFamily;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
+import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.Category;
 import io.github.KevinMitsi.inventories.domain.model.Product;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
@@ -25,8 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,12 +44,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("ProductUseCase")
-class ProductServiceTest {
+class ProductUseCaseTest {
 
     private static final UUID ORGANIZATION_ID = UUID.randomUUID();
     private static final UUID CATEGORY_ID = UUID.randomUUID();
     private static final UUID PRODUCT_ID = UUID.randomUUID();
-    private static final String SKU = "BEB-AGUA-600";
+    private static final String SKU = "BEB-BRISA-BOT-1L";
+    private static final String VARIANT_SKU = "BEB-BRISA-BOL-24";
 
     @Mock
     private ProductRepositoryPort productRepository;
@@ -62,31 +65,40 @@ class ProductServiceTest {
     private ProductUseCase service;
 
     private UnitOfMeasure bottle;
-    private UnitOfMeasure box;
+    private UnitOfMeasure bag;
     private Category category;
 
     @BeforeEach
     void setUp() {
         bottle = UnitOfMeasure.create("UNIT", "Unidad", "und");
-        box = UnitOfMeasure.create("BOX", "Caja", "caja");
+        bag = UnitOfMeasure.create("PACK", "Paquete", "paq");
         category = Category.reconstitute(CATEGORY_ID, ORGANIZATION_ID, "BEB", "Bebidas",
                 null, true, Instant.now(), Instant.now());
 
         when(organizationRepository.existsById(ORGANIZATION_ID)).thenReturn(true);
         when(unitRepository.findById(bottle.id())).thenReturn(Optional.of(bottle));
-        when(unitRepository.findById(box.id())).thenReturn(Optional.of(box));
+        when(unitRepository.findById(bag.id())).thenReturn(Optional.of(bag));
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(call -> call.getArgument(0));
     }
 
-    private CreateProductCommand createCommand() {
+    private CreateProductCommand createCommand(List<CreateProductCommand.Variant> variants) {
         return new CreateProductCommand(ORGANIZATION_ID, CATEGORY_ID, SKU, "7701234567890",
-                "Agua mineral 600 ml", "Botella PET", bottle.id());
+                "Agua Brisa Botella 1 L", "Botella PET", bottle.id(), variants);
+    }
+
+    private CreateProductCommand createCommand() {
+        return createCommand(List.of());
+    }
+
+    private CreateProductCommand.Variant variantCommand(String sku, String barcode) {
+        return new CreateProductCommand.Variant(sku, barcode, "Agua Brisa Bolsa x 24",
+                null, null, bag.id());
     }
 
     private Product existingProduct() {
         return Product.create(ORGANIZATION_ID, CATEGORY_ID, SKU, "7701234567890",
-                "Agua mineral 600 ml", null, bottle);
+                "Agua Brisa Botella 1 L", null, bottle);
     }
 
     @Nested
@@ -94,20 +106,69 @@ class ProductServiceTest {
     class Creation {
 
         @Test
-        @DisplayName("crea el producto con su unidad base")
-        void createsProductWithBaseUnit() {
+        @DisplayName("crea el producto con su unidad y sin variantes")
+        void createsProductWithUnit() {
             // Arrange
             when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, SKU)).thenReturn(false);
             when(productRepository.existsByOrganizationIdAndBarcode(eq(ORGANIZATION_ID), anyString()))
                     .thenReturn(false);
 
             // Act
-            Product created = service.createProduct(createCommand());
+            ProductFamily created = service.createProduct(createCommand());
 
             // Assert
-            assertThat(created.getSku()).isEqualTo(SKU);
-            assertThat(created.requireBaseUnit().getUnit()).isEqualTo(bottle);
+            assertThat(created.principal().getSku()).isEqualTo(SKU);
+            assertThat(created.principal().getUnit()).isEqualTo(bottle);
+            assertThat(created.principal().isVariant()).isFalse();
+            assertThat(created.variants()).isEmpty();
             verify(productRepository).save(any(Product.class));
+        }
+
+        @Test
+        @DisplayName("crea las variantes junto al principal, cada una como producto propio")
+        void createsVariantsAlongsidePrincipal() {
+            // Arrange
+            when(productRepository.existsByOrganizationIdAndSku(any(), anyString())).thenReturn(false);
+            when(productRepository.existsByOrganizationIdAndBarcode(any(), anyString())).thenReturn(false);
+
+            // Act
+            ProductFamily created = service.createProduct(
+                    createCommand(List.of(variantCommand(VARIANT_SKU, "7709999999999"))));
+
+            // Assert
+            assertThat(created.variants()).hasSize(1);
+            Product variant = created.variants().getFirst();
+            assertThat(variant.getSku()).isEqualTo(VARIANT_SKU);
+            assertThat(variant.getParentProductId()).isEqualTo(created.principal().getId());
+            assertThat(variant.getUnit()).isEqualTo(bag);
+            verify(productRepository, org.mockito.Mockito.times(2)).save(any(Product.class));
+        }
+
+        @Test
+        @DisplayName("detecta el SKU repetido entre dos variantes de la misma petición")
+        void detectsDuplicateSkuWithinSameRequest() {
+            // Arrange
+            when(productRepository.existsByOrganizationIdAndSku(any(), anyString())).thenReturn(false);
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.createProduct(createCommand(List.of(
+                    variantCommand(VARIANT_SKU, null),
+                    variantCommand(VARIANT_SKU, null)))))
+                    .isInstanceOf(DuplicateResourceException.class)
+                    .hasMessageContaining(VARIANT_SKU);
+        }
+
+        @Test
+        @DisplayName("no guarda nada si una variante es inválida")
+        void savesNothingWhenAVariantIsInvalid() {
+            // Arrange
+            when(productRepository.existsByOrganizationIdAndSku(any(), anyString())).thenReturn(false);
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.createProduct(createCommand(List.of(
+                    new CreateProductCommand.Variant(VARIANT_SKU, null, "  ", null, null, bag.id())))))
+                    .isInstanceOf(DomainValidationException.class);
+            verify(productRepository, never()).save(any());
         }
 
         @Test
@@ -116,7 +177,7 @@ class ProductServiceTest {
             // Arrange
             when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, SKU)).thenReturn(false);
             CreateProductCommand command = new CreateProductCommand(ORGANIZATION_ID, null,
-                    "  beb-agua-600 ", null, "Agua", null, bottle.id());
+                    "  beb-brisa-bot-1l ", null, "Agua", null, bottle.id(), null);
 
             // Act
             service.createProduct(command);
@@ -158,7 +219,7 @@ class ProductServiceTest {
             // Arrange
             when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, SKU)).thenReturn(false);
             CreateProductCommand command = new CreateProductCommand(ORGANIZATION_ID, null, SKU,
-                    "  ", "Agua", null, bottle.id());
+                    "  ", "Agua", null, bottle.id(), null);
 
             // Act
             service.createProduct(command);
@@ -168,14 +229,14 @@ class ProductServiceTest {
         }
 
         @Test
-        @DisplayName("falla si la unidad base no existe")
-        void failsWhenBaseUnitMissing() {
+        @DisplayName("falla si la unidad de medida no existe")
+        void failsWhenUnitMissing() {
             // Arrange
             UUID unknownUnitId = UUID.randomUUID();
             when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, SKU)).thenReturn(false);
             when(unitRepository.findById(unknownUnitId)).thenReturn(Optional.empty());
             CreateProductCommand command = new CreateProductCommand(ORGANIZATION_ID, null, SKU,
-                    null, "Agua", null, unknownUnitId);
+                    null, "Agua", null, unknownUnitId, null);
 
             // Act & Assert
             assertThatThrownBy(() -> service.createProduct(command))
@@ -225,38 +286,105 @@ class ProductServiceTest {
     }
 
     @Nested
-    @DisplayName("Presentaciones")
-    class Units {
+    @DisplayName("Variantes")
+    class Variants {
 
         @Test
-        @DisplayName("añade una presentación al producto")
-        void addsUnit() {
+        @DisplayName("cuelga una variante de un producto existente")
+        void addsVariant() {
             // Arrange
-            Product product = existingProduct();
-            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(product));
+            Product principal = existingProduct();
+            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(principal));
+            when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, VARIANT_SKU))
+                    .thenReturn(false);
 
             // Act
-            Product result = service.addUnit(
-                    new AddProductUnitCommand(PRODUCT_ID, box.id(), new BigDecimal("24")));
+            Product variant = service.addVariant(new AddProductVariantCommand(PRODUCT_ID, VARIANT_SKU,
+                    null, "Agua Brisa Bolsa x 24", null, null, bag.id()));
 
             // Assert
-            assertThat(result.getUnits()).hasSize(2);
-            assertThat(result.hasUnit(box.id())).isTrue();
+            assertThat(variant.getParentProductId()).isEqualTo(principal.getId());
+            assertThat(variant.getUnit()).isEqualTo(bag);
+            verify(productRepository).save(any(Product.class));
         }
 
         @Test
-        @DisplayName("falla si la unidad de medida no existe")
-        void failsWhenUnitMissing() {
+        @DisplayName("la variante hereda la unidad del principal si no se indica otra")
+        void variantInheritsUnit() {
             // Arrange
-            UUID unknownUnitId = UUID.randomUUID();
             when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(existingProduct()));
-            when(unitRepository.findById(unknownUnitId)).thenReturn(Optional.empty());
+
+            // Act
+            Product variant = service.addVariant(new AddProductVariantCommand(PRODUCT_ID, VARIANT_SKU,
+                    null, "Agua Brisa Botella 1 L con gas", null, null, null));
+
+            // Assert
+            assertThat(variant.getUnit()).isEqualTo(bottle);
+        }
+
+        @Test
+        @DisplayName("rechaza colgar una variante de otra variante")
+        void rejectsNestedVariant() {
+            // Arrange
+            Product variant = existingProduct().createVariant(VARIANT_SKU, null,
+                    "Agua Brisa Bolsa x 24", null, null, bag);
+            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(variant));
 
             // Act & Assert
-            assertThatThrownBy(() -> service.addUnit(
-                    new AddProductUnitCommand(PRODUCT_ID, unknownUnitId, BigDecimal.TEN)))
-                    .isInstanceOf(ResourceNotFoundException.class);
+            assertThatThrownBy(() -> service.addVariant(new AddProductVariantCommand(PRODUCT_ID,
+                    "OTRO-SKU", null, "Otra", null, null, bag.id())))
+                    .isInstanceOf(DomainValidationException.class)
+                    .hasMessageContaining("un solo nivel");
             verify(productRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("falla si el SKU de la variante ya está en uso")
+        void rejectsDuplicateVariantSku() {
+            // Arrange
+            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(existingProduct()));
+            when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, VARIANT_SKU))
+                    .thenReturn(true);
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.addVariant(new AddProductVariantCommand(PRODUCT_ID,
+                    VARIANT_SKU, null, "Agua Brisa Bolsa x 24", null, null, bag.id())))
+                    .isInstanceOf(DuplicateResourceException.class);
+            verify(productRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("la familia de un principal trae sus variantes")
+        void familyOfPrincipalCarriesVariants() {
+            // Arrange
+            Product principal = existingProduct();
+            Product variant = principal.createVariant(VARIANT_SKU, null, "Agua Brisa Bolsa x 24",
+                    null, null, bag);
+            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(principal));
+            when(productRepository.findVariants(PRODUCT_ID)).thenReturn(List.of(variant));
+
+            // Act
+            ProductFamily family = service.getProductFamily(PRODUCT_ID);
+
+            // Assert
+            assertThat(family.principal()).isEqualTo(principal);
+            assertThat(family.variants()).containsExactly(variant);
+        }
+
+        @Test
+        @DisplayName("la familia de una variante llega vacía y no consulta hijos")
+        void familyOfVariantIsEmpty() {
+            // Arrange
+            Product variant = existingProduct().createVariant(VARIANT_SKU, null,
+                    "Agua Brisa Bolsa x 24", null, null, bag);
+            when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(variant));
+
+            // Act
+            ProductFamily family = service.getProductFamily(PRODUCT_ID);
+
+            // Assert
+            assertThat(family.variants()).isEmpty();
+            verify(productRepository, never()).findVariants(any());
         }
     }
 
@@ -273,7 +401,7 @@ class ProductServiceTest {
 
             // Act
             service.updateProduct(new UpdateProductCommand(PRODUCT_ID, CATEGORY_ID,
-                    "7701234567890", "Agua mineral 600 ml", null));
+                    "7701234567890", "Agua Brisa Botella 1 L", null));
 
             // Assert
             verify(productRepository, never()).existsByOrganizationIdAndBarcode(any(), any());
@@ -290,7 +418,7 @@ class ProductServiceTest {
 
             // Act
             service.updateProduct(new UpdateProductCommand(PRODUCT_ID, CATEGORY_ID,
-                    "7709999999999", "Agua mineral 600 ml", null));
+                    "7709999999999", "Agua Brisa Botella 1 L", null));
 
             // Assert
             verify(productRepository).existsByOrganizationIdAndBarcode(ORGANIZATION_ID, "7709999999999");
@@ -336,7 +464,7 @@ class ProductServiceTest {
                     .thenReturn(Optional.of(product));
 
             // Act
-            Product found = service.getProductBySku(ORGANIZATION_ID, "  beb-agua-600 ");
+            Product found = service.getProductBySku(ORGANIZATION_ID, "  beb-brisa-bot-1l ");
 
             // Assert
             assertThat(found).isEqualTo(product);
@@ -362,7 +490,7 @@ class ProductServiceTest {
             // Arrange
             when(productRepository.existsByOrganizationIdAndSku(ORGANIZATION_ID, SKU)).thenReturn(false);
             CreateProductCommand command = new CreateProductCommand(ORGANIZATION_ID, null, SKU,
-                    "  7701234567890  ", "Agua", null, bottle.id());
+                    "  7701234567890  ", "Agua", null, bottle.id(), null);
 
             // Act
             service.createProduct(command);

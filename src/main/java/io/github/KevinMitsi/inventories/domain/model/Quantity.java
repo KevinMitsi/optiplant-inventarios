@@ -74,11 +74,6 @@ public record Quantity(BigDecimal value) implements Comparable<Quantity> {
         return new Quantity(value.multiply(factor));
     }
 
-    /** Convierte a la unidad base aplicando el factor de conversión de la presentación. */
-    public Quantity toBaseUnit(BigDecimal conversionFactor) {
-        return multiply(conversionFactor);
-    }
-
     public boolean isZero() {
         return value.signum() == 0;
     }

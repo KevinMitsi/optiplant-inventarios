@@ -8,6 +8,6 @@ import java.util.UUID;
 public record CreateTransferCommand(UUID originBranchId, UUID destinationBranchId, UUID requestedBy,
                                     String transferNumber, String priority, String notes, List<Item> items) {
 
-    public record Item(UUID productId, UUID productUnitId, BigDecimal quantity) {
+    public record Item(UUID productId, BigDecimal quantity) {
     }
 }

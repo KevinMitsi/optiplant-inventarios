@@ -18,7 +18,6 @@ import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Percentage;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.PurchaseOrder;
 import io.github.KevinMitsi.inventories.domain.model.PurchaseOrderItem;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
@@ -101,22 +100,18 @@ public class PurchaseOrderUseCase implements ManagePurchaseOrderUseCase, QueryPu
                 .orElseThrow(() -> new ResourceNotFoundException("la línea de la orden de compra", command.itemId()));
 
         Product product = requireProduct(item.getProductId());
-        ProductUnit productUnit = requireProductUnit(product, item.getProductUnitId());
 
-        Quantity receivedInOrderUnit = Quantity.of(command.quantityReceived());
-        order.receiveItem(item.getId(), receivedInOrderUnit);
+        Quantity received = Quantity.of(command.quantityReceived());
+        order.receiveItem(item.getId(), received);
         PurchaseOrder saved = purchaseOrderRepository.save(order);
 
-        Quantity baseQuantity = receivedInOrderUnit.toBaseUnit(productUnit.getConversionFactor());
-        Money unitCostPerBaseUnit = item.netUnitPrice().divide(Quantity.of(productUnit.getConversionFactor()));
-
         poster.post(new PostInventoryMovementCommand(saved.getBranchId(), item.getProductId(), product.getSku(),
-                InventoryMovementType.PURCHASE_IN, baseQuantity.value(), unitCostPerBaseUnit.amount(),
+                InventoryMovementType.PURCHASE_IN, received.value(), item.netUnitPrice().amount(),
                 "Recepción de compra %s".formatted(saved.getOrderNumber()), command.userId(),
                 Instant.now(), saved.getId(), null, null, null));
 
         log.info(() -> "Recepción registrada: orden=%s, línea=%s, cantidad=%s"
-                .formatted(saved.getOrderNumber(), item.getId(), receivedInOrderUnit));
+                .formatted(saved.getOrderNumber(), item.getId(), received));
         return saved;
     }
 
@@ -131,10 +126,9 @@ public class PurchaseOrderUseCase implements ManagePurchaseOrderUseCase, QueryPu
     }
 
     private PurchaseOrderItem toItem(CreatePurchaseOrderCommand.Item item) {
-        Product product = requireProduct(item.productId());
-        requireProductUnit(product, item.productUnitId());
+        requireProduct(item.productId());
 
-        return PurchaseOrderItem.create(item.productId(), item.productUnitId(), Quantity.of(item.quantity()),
+        return PurchaseOrderItem.create(item.productId(), Quantity.of(item.quantity()),
                 Money.of(item.unitPrice()), Percentage.ofNullable(item.discountPercentage()));
     }
 
@@ -146,11 +140,5 @@ public class PurchaseOrderUseCase implements ManagePurchaseOrderUseCase, QueryPu
     private Product requireProduct(UUID productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private ProductUnit requireProductUnit(Product product, UUID productUnitId) {
-        return product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
     }
 }

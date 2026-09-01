@@ -1,36 +1,31 @@
 package io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entity;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.BatchSize;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
- * Representación persistente de un producto con sus presentaciones.
+ * Representación persistente de un producto.
  *
- * <p>Las presentaciones sí son una asociación real, a diferencia de la categoría o la
- * organización: pertenecen al mismo agregado y el invariante de la unidad base no puede
- * comprobarse sin ellas.
+ * <p>La unidad de medida sí es una asociación real, a diferencia de la categoría o la
+ * organización: la respuesta del catálogo muestra su código y su símbolo, y resolverla por
+ * separado obligaría a una consulta por producto. Es {@code LAZY}, y el {@code @BatchSize}
+ * declarado en {@link UnitOfMeasureJpaEntity} hace que una página se resuelva en dos
+ * consultas fijas —los productos, y sus unidades con un {@code IN}— en lugar de una por fila.
  *
- * <p>{@code @BatchSize} y no {@code @EntityGraph} en los listados paginados. Traer una
- * colección con {@code JOIN FETCH} y paginar a la vez obliga a Hibernate a leer todas las
- * filas y recortar en memoria, algo que la configuración rechaza de forma explícita
- * ({@code fail_on_pagination_over_collection_fetch}). Con lotes, la página se resuelve en
- * una consulta y las presentaciones de esos productos en una segunda con {@code IN}: dos
- * consultas fijas en lugar de una por producto.
+ * <p>{@code parentProductId} es una columna suelta y no una asociación: el producto padre no
+ * forma parte de este agregado ni se navega al cargarlo. Quien quiera la familia la pide
+ * explícitamente.
  */
 @Entity
 @Table(name = "product")
@@ -47,6 +42,9 @@ public class ProductJpaEntity extends AuditableJpaEntity {
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
 
+    @Column(name = "parent_product_id", updatable = false)
+    private UUID parentProductId;
+
     @Column(name = "category_id")
     private UUID categoryId;
 
@@ -62,25 +60,12 @@ public class ProductJpaEntity extends AuditableJpaEntity {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "unit_id", nullable = false, updatable = false)
+    private UnitOfMeasureJpaEntity unit;
+
     @Column(name = "active", nullable = false)
     private boolean active;
-
-    @OneToMany(mappedBy = "product",
-               cascade = CascadeType.ALL,
-               orphanRemoval = true,
-               fetch = FetchType.LAZY)
-    @BatchSize(size = 50)
-    @Builder.Default
-    private List<ProductUnitJpaEntity> units = new ArrayList<>();
-
-    /** Mantiene el lado propietario de la asociación, que es quien escribe la columna. */
-    public void replaceUnits(List<ProductUnitJpaEntity> newUnits) {
-        units.clear();
-        newUnits.forEach(unit -> {
-            unit.setProduct(this);
-            units.add(unit);
-        });
-    }
 
     @Override
     public boolean equals(Object other) {

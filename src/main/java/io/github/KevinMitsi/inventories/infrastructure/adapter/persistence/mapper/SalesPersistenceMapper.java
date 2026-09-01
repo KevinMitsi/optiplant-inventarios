@@ -55,7 +55,6 @@ public class SalesPersistenceMapper {
                 .id(productPrice.getId())
                 .priceListId(productPrice.getPriceListId())
                 .productId(productPrice.getProductId())
-                .productUnitId(productPrice.getProductUnitId())
                 .price(productPrice.getPrice().amount())
                 .build();
     }
@@ -65,7 +64,7 @@ public class SalesPersistenceMapper {
             return null;
         }
         return ProductPrice.reconstitute(entity.getId(), entity.getPriceListId(), entity.getProductId(),
-                entity.getProductUnitId(), Money.of(entity.getPrice()));
+                Money.of(entity.getPrice()));
     }
 
     public SaleJpaEntity toEntity(Sale sale) {
@@ -105,7 +104,6 @@ public class SalesPersistenceMapper {
         return SaleItemJpaEntity.builder()
                 .id(item.getId())
                 .productId(item.getProductId())
-                .productUnitId(item.getProductUnitId())
                 .quantity(item.getQuantity().value())
                 .unitPrice(item.getUnitPrice().amount())
                 .discountPercentage(item.getDiscountPercentage().value())
@@ -116,7 +114,7 @@ public class SalesPersistenceMapper {
         if (entity == null) {
             return null;
         }
-        return SaleItem.reconstitute(entity.getId(), entity.getProductId(), entity.getProductUnitId(),
+        return SaleItem.reconstitute(entity.getId(), entity.getProductId(),
                 Quantity.of(entity.getQuantity()), Money.of(entity.getUnitPrice()),
                 Percentage.of(entity.getDiscountPercentage()));
     }

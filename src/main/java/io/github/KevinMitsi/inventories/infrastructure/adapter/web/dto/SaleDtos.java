@@ -50,9 +50,6 @@ public final class SaleDtos {
                 @NotNull(message = "El producto de la línea es obligatorio.")
                 UUID productId,
 
-                @NotNull(message = "La presentación de la línea es obligatoria.")
-                UUID productUnitId,
-
                 @NotNull(message = "La cantidad de la línea es obligatoria.")
                 @Positive(message = "La cantidad debe ser mayor que cero.")
                 BigDecimal quantity,
@@ -77,7 +74,7 @@ public final class SaleDtos {
     ) {
         @Schema(name = "SaleItemResponse")
         public record ItemResponse(
-                UUID id, UUID productId, UUID productUnitId, BigDecimal quantity, BigDecimal unitPrice,
+                UUID id, UUID productId, BigDecimal quantity, BigDecimal unitPrice,
                 BigDecimal discountPercentage
         ) {
         }

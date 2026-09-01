@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,11 +36,6 @@ public class ProductPersistenceAdapter implements ProductRepositoryPort {
     }
 
     @Override
-    public void clearBaseUnit(UUID productId) {
-        repository.clearBaseUnit(productId);
-    }
-
-    @Override
     public Optional<Product> findById(UUID id) {
         return repository.findById(id).map(mapper::toDomain);
     }
@@ -47,6 +43,13 @@ public class ProductPersistenceAdapter implements ProductRepositoryPort {
     @Override
     public Optional<Product> findByOrganizationIdAndSku(UUID organizationId, String sku) {
         return repository.findByOrganizationIdAndSku(organizationId, sku).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Product> findVariants(UUID parentProductId) {
+        return repository.findByParentProductIdOrderByNameAsc(parentProductId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

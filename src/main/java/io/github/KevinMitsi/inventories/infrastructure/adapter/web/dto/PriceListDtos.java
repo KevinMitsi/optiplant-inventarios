@@ -58,9 +58,6 @@ public final class PriceListDtos {
             @NotNull(message = "El producto es obligatorio.")
             UUID productId,
 
-            @NotNull(message = "La presentación es obligatoria.")
-            UUID productUnitId,
-
             @NotNull(message = "El precio es obligatorio.")
             @DecimalMin(value = "0", message = "El precio no puede ser negativo.")
             BigDecimal price
@@ -76,7 +73,7 @@ public final class PriceListDtos {
 
     @Schema(name = "ProductPriceResponse")
     public record ProductPriceResponse(
-            UUID id, UUID priceListId, UUID productId, UUID productUnitId, BigDecimal price
+            UUID id, UUID priceListId, UUID productId, BigDecimal price
     ) {
     }
 }

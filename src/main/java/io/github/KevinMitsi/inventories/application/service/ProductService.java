@@ -2,12 +2,11 @@ package io.github.KevinMitsi.inventories.application.service;
 
 import io.github.KevinMitsi.inventories.application.port.in.ManageProductUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.QueryProductUseCase;
-import io.github.KevinMitsi.inventories.application.port.in.command.AddProductUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeBaseUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeProductUnitFactorCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AddProductVariantCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.query.ProductSearchCriteria;
+import io.github.KevinMitsi.inventories.application.port.in.result.ProductFamily;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Product;
@@ -16,6 +15,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Primary
@@ -30,7 +30,7 @@ public class ProductService implements ManageProductUseCase, QueryProductUseCase
     }
 
     @Override
-    public Product createProduct(CreateProductCommand command) {
+    public ProductFamily createProduct(CreateProductCommand command) {
         return useCase.createProduct(command);
     }
 
@@ -40,28 +40,8 @@ public class ProductService implements ManageProductUseCase, QueryProductUseCase
     }
 
     @Override
-    public Product addUnit(AddProductUnitCommand command) {
-        return useCase.addUnit(command);
-    }
-
-    @Override
-    public Product changeUnitFactor(ChangeProductUnitFactorCommand command) {
-        return useCase.changeUnitFactor(command);
-    }
-
-    @Override
-    public Product changeBaseUnit(ChangeBaseUnitCommand command) {
-        return useCase.changeBaseUnit(command);
-    }
-
-    @Override
-    public Product deactivateUnit(UUID productId, UUID productUnitId) {
-        return useCase.deactivateUnit(productId, productUnitId);
-    }
-
-    @Override
-    public Product activateUnit(UUID productId, UUID productUnitId) {
-        return useCase.activateUnit(productId, productUnitId);
+    public Product addVariant(AddProductVariantCommand command) {
+        return useCase.addVariant(command);
     }
 
     @Override
@@ -80,8 +60,18 @@ public class ProductService implements ManageProductUseCase, QueryProductUseCase
     }
 
     @Override
+    public ProductFamily getProductFamily(UUID productId) {
+        return useCase.getProductFamily(productId);
+    }
+
+    @Override
     public Product getProductBySku(UUID organizationId, String sku) {
         return useCase.getProductBySku(organizationId, sku);
+    }
+
+    @Override
+    public List<Product> listVariants(UUID parentProductId) {
+        return useCase.listVariants(parentProductId);
     }
 
     @Override

@@ -133,7 +133,7 @@ class PriceListServiceTest {
             when(productPriceRepository.save(any(ProductPrice.class))).thenAnswer(call -> call.getArgument(0));
 
             ProductPrice saved = service.setProductPrice(new SetProductPriceCommand(priceList.getId(),
-                    product.getId(), product.requireBaseUnit().getId(), new BigDecimal("100.00")));
+                    product.getId(), new BigDecimal("100.00")));
 
             assertThat(saved.getPrice()).isEqualTo(Money.of("100.00"));
         }
@@ -145,14 +145,13 @@ class PriceListServiceTest {
             when(priceListRepository.findById(priceList.getId())).thenReturn(Optional.of(priceList));
 
             ProductPrice existing = ProductPrice.create(priceList.getId(), product.getId(),
-                    product.requireBaseUnit().getId(), Money.of("100.00"));
-            when(productPriceRepository.findByPriceListIdAndProductIdAndProductUnitId(
-                    priceList.getId(), product.getId(), product.requireBaseUnit().getId()))
+                    Money.of("100.00"));
+            when(productPriceRepository.findByPriceListIdAndProductId(priceList.getId(), product.getId()))
                     .thenReturn(Optional.of(existing));
             when(productPriceRepository.save(any(ProductPrice.class))).thenAnswer(call -> call.getArgument(0));
 
             ProductPrice saved = service.setProductPrice(new SetProductPriceCommand(priceList.getId(),
-                    product.getId(), product.requireBaseUnit().getId(), new BigDecimal("120.00")));
+                    product.getId(), new BigDecimal("120.00")));
 
             assertThat(saved.getId()).isEqualTo(existing.getId());
             assertThat(saved.getPrice()).isEqualTo(Money.of("120.00"));

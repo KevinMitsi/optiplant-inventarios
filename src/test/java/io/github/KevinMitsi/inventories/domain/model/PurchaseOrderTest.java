@@ -25,7 +25,7 @@ class PurchaseOrderTest {
 
     @BeforeEach
     void setUp() {
-        item = PurchaseOrderItem.create(UUID.randomUUID(), UUID.randomUUID(), Quantity.of("10"),
+        item = PurchaseOrderItem.create(UUID.randomUUID(), Quantity.of("10"),
                 Money.of("50.00"), Percentage.ZERO);
     }
 
@@ -134,8 +134,7 @@ class PurchaseOrderTest {
         @Test
         @DisplayName("una orden con dos líneas solo cierra cuando ambas están completas")
         void orderWithTwoItemsClosesOnlyWhenBothComplete() {
-            PurchaseOrderItem second = PurchaseOrderItem.create(UUID.randomUUID(), UUID.randomUUID(),
-                    Quantity.of("5"), Money.of("20.00"), Percentage.ZERO);
+            PurchaseOrderItem second = PurchaseOrderItem.create(UUID.randomUUID(), Quantity.of("5"), Money.of("20.00"), Percentage.ZERO);
             PurchaseOrder order = PurchaseOrder.create(BRANCH_ID, SUPPLIER_ID, CREATED_BY, "OC-0003",
                     LocalDate.now(), 0, null, List.of(item, second));
             order.confirm();

@@ -48,9 +48,6 @@ public final class TransferDtos {
                 @NotNull(message = "El producto de la línea es obligatorio.")
                 UUID productId,
 
-                @NotNull(message = "La presentación de la línea es obligatoria.")
-                UUID productUnitId,
-
                 @NotNull(message = "La cantidad solicitada es obligatoria.")
                 @Positive(message = "La cantidad debe ser mayor que cero.")
                 BigDecimal quantity
@@ -125,7 +122,7 @@ public final class TransferDtos {
     ) {
         @Schema(name = "TransferItemResponse")
         public record ItemResponse(
-                UUID id, UUID productId, UUID productUnitId, BigDecimal requestedQuantity,
+                UUID id, UUID productId, BigDecimal requestedQuantity,
                 BigDecimal approvedQuantity, BigDecimal shippedQuantity, BigDecimal receivedQuantity
         ) {
         }

@@ -35,8 +35,7 @@ public interface SalesWebMapper {
     }
 
     default SetProductPriceCommand toCommand(UUID priceListId, PriceListDtos.SetProductPriceRequest request) {
-        return new SetProductPriceCommand(priceListId, request.productId(), request.productUnitId(),
-                request.price());
+        return new SetProductPriceCommand(priceListId, request.productId(), request.price());
     }
 
     PriceListDtos.PriceListResponse toResponse(PriceList priceList);
@@ -53,7 +52,7 @@ public interface SalesWebMapper {
     }
 
     default CreateSaleCommand.Item toItem(SaleDtos.CreateSaleRequest.ItemRequest item) {
-        return new CreateSaleCommand.Item(item.productId(), item.productUnitId(), item.quantity(),
+        return new CreateSaleCommand.Item(item.productId(), item.quantity(),
                 item.unitPrice(), item.discountPercentage());
     }
 

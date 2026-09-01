@@ -18,7 +18,6 @@ import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Percentage;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import io.github.KevinMitsi.inventories.domain.model.Sale;
 import io.github.KevinMitsi.inventories.domain.model.SaleItem;
@@ -131,32 +130,29 @@ public class SaleUseCase implements ManageSaleUseCase, QuerySaleUseCase {
 
     private void postMovement(Sale sale, SaleItem item, InventoryMovementType type, String reason) {
         Product product = requireProduct(item.getProductId());
-        ProductUnit productUnit = requireProductUnit(product, item.getProductUnitId());
-        Quantity baseQuantity = item.getQuantity().toBaseUnit(productUnit.getConversionFactor());
 
         poster.post(new PostInventoryMovementCommand(sale.getBranchId(), item.getProductId(), product.getSku(),
-                type, baseQuantity.value(), null, reason, sale.getCreatedBy(), Instant.now(),
+                type, item.getQuantity().value(), null, reason, sale.getCreatedBy(), Instant.now(),
                 null, sale.getId(), null, null));
     }
 
     private SaleItem toItem(CreateSaleCommand.Item item, UUID priceListId) {
-        Product product = requireProduct(item.productId());
-        requireProductUnit(product, item.productUnitId());
+        requireProduct(item.productId());
 
         Money unitPrice = item.unitPrice() != null
                 ? Money.of(item.unitPrice())
-                : resolvePriceFromList(priceListId, item.productId(), item.productUnitId());
+                : resolvePriceFromList(priceListId, item.productId());
 
-        return SaleItem.create(item.productId(), item.productUnitId(), Quantity.of(item.quantity()), unitPrice,
+        return SaleItem.create(item.productId(), Quantity.of(item.quantity()), unitPrice,
                 Percentage.ofNullable(item.discountPercentage()));
     }
 
-    private Money resolvePriceFromList(UUID priceListId, UUID productId, UUID productUnitId) {
+    private Money resolvePriceFromList(UUID priceListId, UUID productId) {
         if (priceListId == null) {
             throw new DomainValidationException("unitPrice",
                     "La línea no indica precio y la venta no tiene lista de precios asociada (HU-25).");
         }
-        return productPriceRepository.findByPriceListIdAndProductIdAndProductUnitId(priceListId, productId, productUnitId)
+        return productPriceRepository.findByPriceListIdAndProductId(priceListId, productId)
                 .orElseThrow(() -> new ResourceNotFoundException("el precio del producto",
                         "lista %s / producto %s".formatted(priceListId, productId)))
                 .getPrice();
@@ -170,11 +166,5 @@ public class SaleUseCase implements ManageSaleUseCase, QuerySaleUseCase {
     private Product requireProduct(UUID productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private ProductUnit requireProductUnit(Product product, UUID productUnitId) {
-        return product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
     }
 }
