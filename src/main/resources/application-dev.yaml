@@ -1,0 +1,13 @@
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+
+logging:
+  level:
+    io.github.KevinMitsi.inventories: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE      # muestra los parametros ligados de cada consulta
+    org.springframework.security: DEBUG

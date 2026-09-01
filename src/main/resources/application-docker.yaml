@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/${POSTGRES_DB:mydatabase}?reWriteBatchedInserts=true
+    username: ${POSTGRES_USER:myuser}
+    password: ${POSTGRES_PASSWORD:secret}
+  docker:
+    compose:
+      enabled: false        # dentro del contenedor la base ya la levanta el propio compose
+
+logging:
+  level:
+    io.github.KevinMitsi.inventories: INFO
+
+app:
+  cors:
+    # Origenes del frontend admitidos para CORS. Lista separada por comas via variable de
+    # entorno CORS_ALLOWED_ORIGINS; el valor por omision solo sirve para desarrollo local.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}

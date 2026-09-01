@@ -21,6 +21,7 @@ repositories {
 ext {
 	set('snippetsDir', file("build/generated-snippets"))
 	set('jjwtVersion', '0.12.6')
+	set('mapstructVersion', '1.5.5.Final')
 }
 
 dependencies {
@@ -29,6 +30,11 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
+
+
+	// Jakarta Validation (Bean Validation)
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	// Base de datos PostgreSQL (JDBC / HikariCP)
 	implementation 'org.flywaydb:flyway-database-postgresql'
@@ -39,13 +45,21 @@ dependencies {
 	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
 	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
+	// MapStruct (Librería principal)
+	implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+
 	// Lombok y Herramientas de Desarrollo
 	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+
+	// Procesadores de anotaciones (Orden crítico: Binding -> MapStruct -> Lombok)
+	annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"
+	annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+	annotationProcessor 'org.projectlombok:lombok'
 
 	// Testing Tradicional
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-restdocs'
@@ -55,7 +69,11 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-postgresql'
 
 	testCompileOnly 'org.projectlombok:lombok'
+
+	// Procesadores de anotaciones para Test
+	testAnnotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
