@@ -41,8 +41,7 @@ public final class SaleDtos {
 
             @Schema(description = "Líneas de la venta; al menos una.", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotEmpty(message = "La venta debe tener al menos una línea.")
-            @Valid
-            List<ItemRequest> items
+            List<@Valid ItemRequest> items
     ) {
         @Schema(name = "SaleItemRequest")
         public record ItemRequest(

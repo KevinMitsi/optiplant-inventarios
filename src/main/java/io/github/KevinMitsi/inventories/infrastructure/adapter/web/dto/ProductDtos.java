@@ -61,8 +61,7 @@ public final class ProductDtos {
                     aparte, con su propio SKU, su propio inventario y su propio precio. \
                     «Agua Brisa Botella 1 L» y «Agua Brisa Bolsa x 24» se cuentan por separado \
                     y solo aparecen juntas en el catálogo.""")
-            @Valid
-            List<ProductVariantRequest> variants
+            List<@Valid ProductVariantRequest> variants
     ) {
     }
 

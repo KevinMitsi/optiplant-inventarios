@@ -6,9 +6,15 @@ import io.github.KevinMitsi.inventories.application.port.in.QueryTransferIssueUs
 import io.github.KevinMitsi.inventories.domain.model.TransferIssue;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.AuthenticatedUser;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.CurrentUserProvider;
+import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ApiErrorResponse;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.TransferIssueDtos;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.mapper.TransferWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,6 +55,13 @@ public class TransferIssueController {
     @GetMapping
     @Operation(operationId = "listTransferIssues", summary = "Incidencias de una transferencia",
             description = "Todas las incidencias de sus líneas, resueltas o no.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Incidencias de la transferencia. Vacío si no hubo faltantes.",
+                    content = @Content(array = @ArraySchema(
+                            schema = @Schema(implementation = TransferIssueDtos.TransferIssueResponse.class)))),
+            @ApiResponse(responseCode = "404", description = "No existe una transferencia con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public List<TransferIssueDtos.TransferIssueResponse> listIssues(@PathVariable UUID transferId) {
         return queryTransferIssueUseCase.listIssuesForTransfer(transferId).stream()
                 .map(mapper::toResponse)
@@ -60,6 +73,18 @@ public class TransferIssueController {
             description = "Deja constancia de cómo se resolvió (reenvío, ajuste o reclamación). "
                     + "No ejecuta esa resolución automáticamente. Si era la última incidencia "
                     + "pendiente, la transferencia pasa a CLOSED.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Incidencia resuelta.",
+                    content = @Content(schema = @Schema(implementation = TransferIssueDtos.TransferIssueResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Campos con formato inválido.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "El rol no autoriza a decidir cómo se cierra un faltante.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "La transferencia o la incidencia no existen.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "La incidencia ya estaba resuelta, o no pertenece a esa transferencia.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public TransferIssueDtos.TransferIssueResponse resolveIssue(
             @PathVariable UUID transferId,
             @PathVariable UUID issueId,

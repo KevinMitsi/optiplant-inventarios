@@ -399,6 +399,9 @@ hacer cuando algo falla** (`verifyNoInteractions`, `verify(..., never())`).
       JWT, filtro de autenticación, autorización por rol y sucursal, y arranque del
       administrador inicial. `SecurityConfig` ya no está en modo permisivo.
 - [ ] Catálogo: `Category`, `Product`, `UnitOfMeasure`, `ProductUnit`
+      *(`ProductUnit` se implementó en la fase 4 y se retiró en la fase 6: hoy el producto
+      lleva una sola unidad y las presentaciones son variantes. Ver
+      `PHASE6-CATALOGO-VARIANTES.md`.)*
 - [ ] Inventario: `Inventory`, `InventoryMovement` ← **el núcleo del dominio (RN-04)**
 - [ ] Compras, ventas, transferencias, logística, analítica, alertas
 

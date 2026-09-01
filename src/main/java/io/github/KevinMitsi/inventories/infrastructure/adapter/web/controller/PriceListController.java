@@ -8,10 +8,15 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.PriceList;
 import io.github.KevinMitsi.inventories.domain.model.ProductPrice;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.CurrentUserProvider;
+import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ApiErrorResponse;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.PageResponse;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.PriceListDtos;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.mapper.SalesWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,7 +49,22 @@ public class PriceListController {
 
     @PostMapping(value = "/organizations/{organizationId}/price-lists", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
-    @Operation(operationId = "createPriceList", summary = "Crear una lista de precios (RF-29)")
+    @Operation(operationId = "createPriceList", summary = "Crear una lista de precios (RF-29)",
+            description = "El código es único dentro de la organización y no es modificable después.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Lista de precios creada.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.PriceListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Campos con formato inválido.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "El rol no autoriza, o la organización no es la suya.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "La organización no existe.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "El código ya está en uso en la organización.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "La vigencia es incoherente: `validUntil` anterior a `validFrom`.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<PriceListDtos.PriceListResponse> createPriceList(
             @PathVariable UUID organizationId,
             @Valid @RequestBody PriceListDtos.CreatePriceListRequest request) {
@@ -61,6 +81,14 @@ public class PriceListController {
 
     @GetMapping("/organizations/{organizationId}/price-lists")
     @Operation(operationId = "searchPriceLists", summary = "Listar listas de precios de la organización")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de listas de precios.",
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Parámetros de paginación inválidos.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "La organización no es la del usuario.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PageResponse<PriceListDtos.PriceListResponse> searchPriceLists(
             @PathVariable UUID organizationId,
             @RequestParam(required = false) Boolean active,
@@ -82,6 +110,12 @@ public class PriceListController {
 
     @GetMapping("/price-lists/{priceListId}")
     @Operation(operationId = "getPriceListById", summary = "Consultar una lista de precios")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de precios encontrada.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.PriceListResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una lista con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.PriceListResponse getPriceList(@PathVariable UUID priceListId) {
         return mapper.toResponse(queryPriceListUseCase.getPriceListById(priceListId));
     }
@@ -90,6 +124,16 @@ public class PriceListController {
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "updatePriceList", summary = "Actualizar una lista de precios",
             description = "Modifica nombre, descripción y vigencia. El código no es modificable.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de precios actualizada.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.PriceListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Campos con formato inválido.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una lista con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "La vigencia es incoherente: `validUntil` anterior a `validFrom`.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.PriceListResponse updatePriceList(
             @PathVariable UUID priceListId,
             @Valid @RequestBody PriceListDtos.UpdatePriceListRequest request) {
@@ -99,7 +143,14 @@ public class PriceListController {
 
     @PatchMapping("/price-lists/{priceListId}/deactivation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
-    @Operation(operationId = "deactivatePriceList", summary = "Dar de baja una lista de precios")
+    @Operation(operationId = "deactivatePriceList", summary = "Dar de baja una lista de precios",
+            description = "Baja lógica e idempotente: repetirla sobre una lista ya inactiva no es un error.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de precios dada de baja.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.PriceListResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una lista con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.PriceListResponse deactivatePriceList(@PathVariable UUID priceListId) {
         return mapper.toResponse(managePriceListUseCase.deactivatePriceList(priceListId));
     }
@@ -107,6 +158,12 @@ public class PriceListController {
     @PatchMapping("/price-lists/{priceListId}/activation")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "activatePriceList", summary = "Reactivar una lista de precios")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de precios reactivada.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.PriceListResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una lista con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.PriceListResponse activatePriceList(@PathVariable UUID priceListId) {
         return mapper.toResponse(managePriceListUseCase.activatePriceList(priceListId));
     }
@@ -114,8 +171,17 @@ public class PriceListController {
     @PatchMapping("/price-lists/{priceListId}/product-prices")
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER')")
     @Operation(operationId = "setProductPrice", summary = "Fijar el precio de un producto en la lista (HU-25)",
-            description = "Crea el precio si no existe, o lo reemplaza si ya estaba fijado para esa "
-                    + "presentación.")
+            description = "Crea el precio si no existe, o lo reemplaza si ya estaba fijado para ese "
+                    + "producto. Hay un precio por producto y lista: las variantes, al ser productos "
+                    + "completos, llevan el suyo propio.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Precio fijado.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.ProductPriceResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Campos con formato inválido, o precio negativo.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "La lista de precios o el producto no existen.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.ProductPriceResponse setProductPrice(
             @PathVariable UUID priceListId,
             @Valid @RequestBody PriceListDtos.SetProductPriceRequest request) {
@@ -126,6 +192,14 @@ public class PriceListController {
 
     @GetMapping("/price-lists/{priceListId}/product-prices")
     @Operation(operationId = "getProductPrice", summary = "Consultar el precio de un producto en la lista")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Precio encontrado.",
+                    content = @Content(schema = @Schema(implementation = PriceListDtos.ProductPriceResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Falta el parámetro `productId` o no es un UUID.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "El producto no tiene precio fijado en esa lista.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PriceListDtos.ProductPriceResponse getProductPrice(
             @PathVariable UUID priceListId,
             @RequestParam UUID productId) {

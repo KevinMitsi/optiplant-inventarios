@@ -8,10 +8,15 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Sale;
 import io.github.KevinMitsi.inventories.domain.model.SaleStatus;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.security.CurrentUserProvider;
+import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ApiErrorResponse;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.PageResponse;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.SaleDtos;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.mapper.SalesWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,7 +55,30 @@ public class SaleController {
 
     @PostMapping(value = "/branches/{branchId}/sales", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
-    @Operation(operationId = "createSale", summary = "Crear una venta en borrador (HU-22)")
+    @Operation(operationId = "createSale", summary = "Crear una venta en borrador (HU-22)",
+            description = """
+                    La venta nace en borrador y todavía no toca el inventario: el stock se descuenta \
+                    al confirmar. El número de venta es único y debe haber al menos una línea.
+
+                    Cada línea puede traer su `unitPrice`; si no lo trae, se resuelve contra la \
+                    lista de precios de la venta, que entonces es obligatoria (HU-25). Una variante \
+                    es un producto distinto: se vende en su propia línea y con su propio precio.""")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Venta creada en borrador.",
+                    content = @Content(schema = @Schema(implementation = SaleDtos.SaleResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Campos con formato inválido, o la venta llega sin líneas.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "El rol no autoriza, o la sucursal no es operable por el usuario.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404",
+                    description = "La sucursal, la lista de precios, algún producto o su precio en la lista no existen.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "El número de venta ya está en uso.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422",
+                    description = "Una línea va sin precio y la venta no tiene lista de precios asociada (HU-25).",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<SaleDtos.SaleResponse> createSale(
             @PathVariable UUID branchId,
             @Valid @RequestBody SaleDtos.CreateSaleRequest request) {
@@ -66,7 +94,18 @@ public class SaleController {
     }
 
     @GetMapping("/branches/{branchId}/sales")
-    @Operation(operationId = "searchSales", summary = "Consultar histórico de ventas (HU-26, RF-30)")
+    @Operation(operationId = "searchSales", summary = "Consultar histórico de ventas (HU-26, RF-30)",
+            description = "Filtra por estado y por rango de fechas de venta.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de ventas.",
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Parámetros de paginación o fechas inválidos.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "La sucursal no es operable por el usuario.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "El valor de `status` no es un estado conocido.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public PageResponse<SaleDtos.SaleResponse> searchSales(
             @PathVariable UUID branchId,
             @RequestParam(required = false) String status,
@@ -92,6 +131,12 @@ public class SaleController {
 
     @GetMapping("/sales/{saleId}")
     @Operation(operationId = "getSaleById", summary = "Consultar una venta (comprobante, HU-26)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Venta encontrada, con sus líneas y su total.",
+                    content = @Content(schema = @Schema(implementation = SaleDtos.SaleResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una venta con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public SaleDtos.SaleResponse getSale(@PathVariable UUID saleId) {
         return mapper.toResponse(querySaleUseCase.getSaleById(saleId));
     }
@@ -100,6 +145,19 @@ public class SaleController {
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
     @Operation(operationId = "confirmSale", summary = "Confirmar la venta",
             description = "Descuenta inventario mediante SALE_OUT, validando stock disponible (RN-03).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Venta confirmada y stock descontado.",
+                    content = @Content(schema = @Schema(implementation = SaleDtos.SaleResponse.class))),
+            @ApiResponse(responseCode = "403", description = "El rol no autoriza la operación.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una venta con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Otra operación tocó el mismo saldo a la vez; reintente.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422",
+                    description = "Stock insuficiente en alguna línea (RN-03), o la venta ya no está en borrador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public SaleDtos.SaleResponse confirmSale(@PathVariable UUID saleId) {
         return mapper.toResponse(manageSaleUseCase.confirmSale(saleId));
     }
@@ -108,7 +166,18 @@ public class SaleController {
     @PreAuthorize("hasAnyRole('ADMIN', 'BRANCH_MANAGER', 'INVENTORY_OPERATOR')")
     @Operation(operationId = "cancelSale", summary = "Cancelar la venta",
             description = "Si estaba confirmada, restituye el inventario con un movimiento RETURN_IN "
-                    + "compensatorio.")
+                    + "compensatorio. El movimiento original no se toca: se compensa, nunca se "
+                    + "reescribe (RNF-12).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Venta cancelada.",
+                    content = @Content(schema = @Schema(implementation = SaleDtos.SaleResponse.class))),
+            @ApiResponse(responseCode = "403", description = "El rol no autoriza la operación.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una venta con ese identificador.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "La venta ya estaba cancelada.",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public SaleDtos.SaleResponse cancelSale(@PathVariable UUID saleId) {
         return mapper.toResponse(manageSaleUseCase.cancelSale(saleId));
     }

@@ -326,7 +326,9 @@ Con la seguridad resuelta, ya existe el sujeto que todo movimiento de inventario
 registrar como responsable (RN-11), que era el requisito previo para el núcleo del dominio.
 
 1. **Catálogo** — `Category`, `Product`, `UnitOfMeasure`, `ProductUnit`. El inventario
-   referencia productos y unidades, así que va antes.
+   referencia productos y unidades, así que va antes. *(`ProductUnit` se retiró en la fase 6:
+   el producto lleva una sola unidad y las presentaciones son variantes. Ver
+   `PHASE6-CATALOGO-VARIANTES.md`.)*
 2. **Inventario y movimientos** — el corazón del sistema: *el stock nunca cambia sin un
    movimiento que lo explique* (RN-04).
 3. **Compras, ventas y transferencias**, todas apoyadas en ese mismo mecanismo.

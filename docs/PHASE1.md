@@ -1313,6 +1313,12 @@ paquete
 
 ## 26.4 Unidad de producto
 
+> **Derogada en la fase 6.** `ProductUnit` y el factor de conversión llegaron a implementarse
+> y se retiraron: cada producto se cuenta en una sola unidad (`product.unit_id`) y las
+> presentaciones distintas de un artículo son variantes, productos completos con SKU, stock y
+> precio propios. Referencia vigente: `PHASE6-CATALOGO-VARIANTES.md`. Lo que sigue es el
+> diseño de planificación original.
+
 Debido a que el documento exige múltiples unidades por producto, probablemente necesitaremos una asociación.
 
 ```text

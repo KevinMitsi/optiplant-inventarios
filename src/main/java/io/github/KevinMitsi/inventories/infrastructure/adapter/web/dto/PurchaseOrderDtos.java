@@ -48,8 +48,7 @@ public final class PurchaseOrderDtos {
 
             @Schema(description = "Líneas de la orden; al menos una.", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotEmpty(message = "La orden debe tener al menos una línea.")
-            @Valid
-            List<ItemRequest> items
+            List<@Valid ItemRequest> items
     ) {
         @Schema(name = "PurchaseOrderItemRequest")
         public record ItemRequest(
@@ -61,7 +60,7 @@ public final class PurchaseOrderDtos {
                 @Positive(message = "La cantidad debe ser mayor que cero.")
                 BigDecimal quantity,
 
-                @Schema(description = "Precio pactado por unidad de la presentación indicada.")
+                @Schema(description = "Precio pactado por unidad del producto, en la unidad en que se cuenta.")
                 @NotNull(message = "El precio unitario es obligatorio.")
                 @DecimalMin(value = "0", message = "El precio unitario no puede ser negativo.")
                 BigDecimal unitPrice,
@@ -77,7 +76,7 @@ public final class PurchaseOrderDtos {
     @Schema(name = "ReceivePurchaseOrderItemRequest")
     public record ReceivePurchaseOrderItemRequest(
 
-            @Schema(description = "Cantidad recibida ahora, en la unidad de la línea.",
+            @Schema(description = "Cantidad recibida ahora, en la unidad del producto de la línea.",
                     requiredMode = Schema.RequiredMode.REQUIRED)
             @NotNull(message = "La cantidad recibida es obligatoria.")
             @Positive(message = "La cantidad recibida debe ser mayor que cero.")

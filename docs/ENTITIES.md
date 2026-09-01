@@ -1,5 +1,16 @@
 # Modelo E-R textual normalizado hasta 3FN
 
+> **Estado del catálogo tras la fase 6.** La tabla `product_unit` y las columnas
+> `product_unit_id` de `sale_item`, `purchase_order_item`, `transfer_item` y `product_price`
+> se eliminaron en la migración `V3`. Hoy cada producto se cuenta en una única unidad
+> (`product.unit_id`, sin factor de conversión) y las presentaciones distintas de un artículo
+> son productos completos enlazados por `product.parent_product_id`.
+>
+> La sección §7.4 y las listas de relaciones, cardinalidades y ejemplos de normalización
+> (§19, §21, §26, §41, §42) conservan el diseño anterior como registro histórico y como
+> ejemplo de normalización; **para el catálogo, la referencia vigente es
+> `PHASE6-CATALOGO-VARIANTES.md`**. Las tablas afectadas llevan además su propia nota.
+
 ## 1. Objetivo del modelo de datos
 
 El modelo de datos debe soportar de forma íntegra los procesos principales definidos para el sistema:
@@ -97,7 +108,8 @@ ORGANIZATION
            ├──< INVENTORY >── PRODUCT
            │                      │
            │                      ├── CATEGORY
-           │                      └──< PRODUCT_UNIT >── UNIT_OF_MEASURE
+           │                      ├── UNIT_OF_MEASURE
+           │                      └──< PRODUCT  (variantes, vía parent_product_id)
            │
            ├──< INVENTORY_MOVEMENT
            │
@@ -348,21 +360,35 @@ El inventario depende simultáneamente de producto y sucursal.
 
 | Campo             | Tipo         | Restricción            |
 | ----------------- | ------------ | ---------------------- |
-| `id`              | UUID         | PK                     |
-| `organization_id` | UUID         | FK, NOT NULL           |
-| `category_id`     | UUID         | FK, NULL               |
-| `sku`             | VARCHAR(60)  | NOT NULL               |
-| `barcode`         | VARCHAR(100) | NULL                   |
-| `name`            | VARCHAR(180) | NOT NULL               |
-| `description`     | TEXT         | NULL                   |
-| `active`          | BOOLEAN      | NOT NULL, DEFAULT TRUE |
-| `created_at`      | TIMESTAMP TZ | NOT NULL               |
-| `updated_at`      | TIMESTAMP TZ | NOT NULL               |
+| `id`                | UUID         | PK                     |
+| `organization_id`   | UUID         | FK, NOT NULL           |
+| `category_id`       | UUID         | FK, NULL               |
+| `parent_product_id` | UUID         | FK a `product`, NULL   |
+| `unit_id`           | UUID         | FK a `unit_of_measure`, NOT NULL |
+| `sku`               | VARCHAR(60)  | NOT NULL               |
+| `barcode`           | VARCHAR(100) | NULL                   |
+| `name`              | VARCHAR(180) | NOT NULL               |
+| `description`       | TEXT         | NULL                   |
+| `active`            | BOOLEAN      | NOT NULL, DEFAULT TRUE |
+| `created_at`        | TIMESTAMP TZ | NOT NULL               |
+| `updated_at`        | TIMESTAMP TZ | NOT NULL               |
+
+`unit_id` y `parent_product_id` se añadieron en la migración `V3`, al retirar `product_unit`
+(ver `PHASE6-CATALOGO-VARIANTES.md`):
+
+- `unit_id` es **la** unidad en la que se cuenta el stock del producto. No hay factor de
+  conversión, y es inmutable tras la creación: el histórico de movimientos ya está expresado
+  en ella.
+- `parent_product_id` cuelga una variante de su producto principal. Una variante es un
+  producto completo —SKU, stock, precio y unidad propios—, no otra presentación del mismo
+  stock. El catálogo es de un solo nivel: una variante no puede tener variantes.
 
 ## Constraints
 
 ```sql
 UNIQUE (organization_id, sku)
+
+CHECK (parent_product_id IS NULL OR parent_product_id <> id)
 ```
 
 Posiblemente:
@@ -806,6 +832,10 @@ Luego, si se necesita auditoría financiera estricta, se pueden persistir snapsh
 
 # 10.4 `purchase_order_item`
 
+> **`product_unit_id` fue eliminada** en la migración `V3` (ver `PHASE6-CATALOGO-VARIANTES.md`).
+> La cantidad y el precio unitario de la línea se expresan en la unidad del propio producto
+> (`product.unit_id`). La restricción de unicidad pasó a ser `(purchase_order_id, product_id)`.
+
 ## Atributos
 
 | Campo                 | Tipo          | Restricción         |
@@ -896,6 +926,10 @@ UNIQUE (branch_id, sale_number)
 
 # 11.3 `sale_item`
 
+> **`product_unit_id` fue eliminada** en la migración `V3` (ver `PHASE6-CATALOGO-VARIANTES.md`).
+> La cantidad y el precio unitario se expresan en la unidad del propio producto
+> (`product.unit_id`). La restricción de unicidad pasó a ser `(sale_id, product_id)`.
+
 ## Atributos
 
 | Campo                 | Tipo          | Constraint         |
@@ -959,6 +993,11 @@ CHECK (
 ---
 
 # 12.2 `product_price`
+
+> **`product_unit_id` fue eliminada** en la migración `V3` (ver `PHASE6-CATALOGO-VARIANTES.md`).
+> Hay un precio por lista y producto, no por presentación (DEC-34): la restricción de
+> unicidad pasó a ser `(price_list_id, product_id)`. Una variante, al ser un producto
+> completo, lleva su propio precio.
 
 Resuelve:
 
@@ -1099,6 +1138,10 @@ Puede utilizarse `CHECK`, aunque como existen `NULL`, debe definirse cuidadosame
 # 13.5 `transfer_item`
 
 Una transferencia puede contener múltiples productos.
+
+> **`product_unit_id` fue eliminada** en la migración `V3` (ver `PHASE6-CATALOGO-VARIANTES.md`).
+> Todas las cantidades de la línea se expresan en la unidad del propio producto
+> (`product.unit_id`). La restricción de unicidad pasó a ser `(transfer_id, product_id)`.
 
 ## Atributos
 

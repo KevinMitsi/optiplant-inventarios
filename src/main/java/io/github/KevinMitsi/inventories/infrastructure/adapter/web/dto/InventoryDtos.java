@@ -20,7 +20,7 @@ public final class InventoryDtos {
     @Schema(name = "SetMinimumStockRequest", description = "Stock mínimo de un producto en una sucursal.")
     public record SetMinimumStockRequest(
 
-            @Schema(description = "Stock mínimo, en unidad base del producto.", example = "10",
+            @Schema(description = "Stock mínimo, en la unidad del producto.", example = "10",
                     requiredMode = Schema.RequiredMode.REQUIRED)
             @NotNull(message = "El stock mínimo es obligatorio.")
             @DecimalMin(value = "0", message = "El stock mínimo no puede ser negativo.")
@@ -37,7 +37,7 @@ public final class InventoryDtos {
             @NotNull(message = "El producto es obligatorio.")
             UUID productId,
 
-            @Schema(description = "Cantidad, en unidad base del producto.", example = "5",
+            @Schema(description = "Cantidad, en la unidad del producto.", example = "5",
                     requiredMode = Schema.RequiredMode.REQUIRED)
             @NotNull(message = "La cantidad es obligatoria.")
             @Positive(message = "La cantidad debe ser mayor que cero.")
@@ -56,7 +56,7 @@ public final class InventoryDtos {
             @Schema(description = "Identificador del saldo.") UUID id,
             @Schema(description = "Sucursal.") UUID branchId,
             @Schema(description = "Producto.") UUID productId,
-            @Schema(description = "Cantidad disponible, en unidad base.") BigDecimal quantity,
+            @Schema(description = "Cantidad disponible, en la unidad del producto.") BigDecimal quantity,
             @Schema(description = "Stock mínimo configurado.") BigDecimal minimumStock,
             @Schema(description = "Costo promedio ponderado (RF-23).") BigDecimal averageCost,
             @Schema(description = "Si el saldo está en o por debajo del mínimo.") boolean lowStock,
