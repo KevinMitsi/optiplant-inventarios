@@ -36,9 +36,6 @@ public class SaleItemJpaEntity {
     @Column(name = "product_id", nullable = false, updatable = false)
     private UUID productId;
 
-    @Column(name = "product_unit_id", nullable = false, updatable = false)
-    private UUID productUnitId;
-
     @Column(name = "quantity", nullable = false, updatable = false, precision = 18, scale = 6)
     private BigDecimal quantity;
 

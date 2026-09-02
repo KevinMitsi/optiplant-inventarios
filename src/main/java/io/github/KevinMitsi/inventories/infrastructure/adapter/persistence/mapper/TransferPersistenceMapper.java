@@ -75,7 +75,6 @@ public class TransferPersistenceMapper {
         return TransferItemJpaEntity.builder()
                 .id(item.getId())
                 .productId(item.getProductId())
-                .productUnitId(item.getProductUnitId())
                 .requestedQuantity(item.getRequestedQuantity().value())
                 .approvedQuantity(quantityValue(item.getApprovedQuantity()))
                 .shippedQuantity(quantityValue(item.getShippedQuantity()))
@@ -87,7 +86,7 @@ public class TransferPersistenceMapper {
         if (entity == null) {
             return null;
         }
-        return TransferItem.reconstitute(entity.getId(), entity.getProductId(), entity.getProductUnitId(),
+        return TransferItem.reconstitute(entity.getId(), entity.getProductId(),
                 Quantity.of(entity.getRequestedQuantity()), quantityOrNull(entity.getApprovedQuantity()),
                 quantityOrNull(entity.getShippedQuantity()), quantityOrNull(entity.getReceivedQuantity()));
     }

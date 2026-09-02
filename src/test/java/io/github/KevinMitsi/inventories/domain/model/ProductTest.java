@@ -1,6 +1,5 @@
 package io.github.KevinMitsi.inventories.domain.model;
 
-import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,19 +20,17 @@ class ProductTest {
     private static final UUID CATEGORY_ID = UUID.randomUUID();
 
     private UnitOfMeasure bottle;
-    private UnitOfMeasure box;
-    private UnitOfMeasure pallet;
+    private UnitOfMeasure bag;
 
     @BeforeEach
     void setUp() {
         bottle = UnitOfMeasure.create("UNIT", "Unidad", "und");
-        box = UnitOfMeasure.create("BOX", "Caja", "caja");
-        pallet = UnitOfMeasure.create("PALLET", "Pallet", "plt");
+        bag = UnitOfMeasure.create("PACK", "Paquete", "paq");
     }
 
     private Product newProduct() {
-        return Product.create(ORGANIZATION_ID, CATEGORY_ID, "BEB-AGUA-600", "7701234567890",
-                "Agua mineral 600 ml", "Botella PET", bottle);
+        return Product.create(ORGANIZATION_ID, CATEGORY_ID, "BEB-BRISA-BOT-1L", "7701234567890",
+                "Agua Brisa Botella 1 L", "Botella PET", bottle);
     }
 
     @Nested
@@ -42,27 +38,17 @@ class ProductTest {
     class Creation {
 
         @Test
-        @DisplayName("un producto nuevo nace activo y con su unidad base")
-        void createsActiveProductWithBaseUnit() {
+        @DisplayName("un producto nuevo nace activo, principal y con su unidad")
+        void createsActivePrincipalProduct() {
             // Arrange & Act
             Product product = newProduct();
 
             // Assert
             assertThat(product.getId()).isNotNull();
             assertThat(product.isActive()).isTrue();
-            assertThat(product.getUnits()).hasSize(1);
-            assertThat(product.requireBaseUnit().getUnit()).isEqualTo(bottle);
-        }
-
-        @Test
-        @DisplayName("la unidad base tiene siempre factor de conversión 1")
-        void baseUnitFactorIsOne() {
-            // Arrange & Act
-            Product product = newProduct();
-
-            // Assert
-            assertThat(product.requireBaseUnit().getConversionFactor())
-                    .isEqualByComparingTo(BigDecimal.ONE);
+            assertThat(product.isVariant()).isFalse();
+            assertThat(product.getParentProductId()).isNull();
+            assertThat(product.getUnit()).isEqualTo(bottle);
         }
 
         @Test
@@ -77,13 +63,13 @@ class ProductTest {
         }
 
         @Test
-        @DisplayName("rechaza crear un producto sin unidad base")
-        void rejectsMissingBaseUnit() {
+        @DisplayName("rechaza crear un producto sin unidad de medida")
+        void rejectsMissingUnit() {
             // Arrange, Act & Assert
             assertThatThrownBy(() -> Product.create(ORGANIZATION_ID, null, "SKU-1",
                     null, "Producto", null, null))
                     .isInstanceOf(NullPointerException.class)
-                    .hasMessageContaining("unidad base");
+                    .hasMessageContaining("unidad de medida");
         }
 
         @ParameterizedTest
@@ -110,200 +96,85 @@ class ProductTest {
     }
 
     @Nested
-    @DisplayName("Presentaciones")
-    class Units {
+    @DisplayName("Variantes")
+    class Variants {
 
         @Test
-        @DisplayName("añade una presentación con su factor de conversión")
-        void addsUnit() {
+        @DisplayName("una variante es un producto propio, con su SKU y su enlace al principal")
+        void variantIsAnAutonomousProduct() {
             // Arrange
-            Product product = newProduct();
+            Product principal = newProduct();
 
             // Act
-            product.addUnit(box, new BigDecimal("24"));
+            Product variant = principal.createVariant("BEB-BRISA-BOL-24", "7709999999999",
+                    "Agua Brisa Bolsa x 24", "Bolsa", null, bag);
 
             // Assert
-            assertThat(product.getUnits()).hasSize(2);
-            assertThat(product.hasUnit(box.id())).isTrue();
+            assertThat(variant.getId()).isNotEqualTo(principal.getId());
+            assertThat(variant.getSku()).isEqualTo("BEB-BRISA-BOL-24");
+            assertThat(variant.getParentProductId()).isEqualTo(principal.getId());
+            assertThat(variant.isVariant()).isTrue();
+            assertThat(variant.getUnit()).isEqualTo(bag);
+            assertThat(variant.isActive()).isTrue();
         }
 
         @Test
-        @DisplayName("rechaza dos presentaciones en la misma unidad de medida")
-        void rejectsDuplicateUnit() {
+        @DisplayName("la variante hereda organización, y categoría y unidad si no se indican")
+        void variantInheritsDefaults() {
             // Arrange
-            Product product = newProduct();
-            product.addUnit(box, new BigDecimal("24"));
+            Product principal = newProduct();
 
-            // Act & Assert
-            assertThatThrownBy(() -> product.addUnit(box, new BigDecimal("12")))
-                    .isInstanceOf(BusinessRuleViolationException.class)
-                    .hasMessageContaining("ya tiene una presentación");
+            // Act
+            Product variant = principal.createVariant("BEB-BRISA-BOT-1L-GAS", null,
+                    "Agua Brisa Botella 1 L con gas", null, null, null);
+
+            // Assert
+            assertThat(variant.getOrganizationId()).isEqualTo(ORGANIZATION_ID);
+            assertThat(variant.getCategoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(variant.getUnit()).isEqualTo(bottle);
         }
 
-        @ParameterizedTest
-        @ValueSource(strings = {"0", "-1", "-0.5"})
-        @DisplayName("rechaza un factor de conversión que no sea positivo")
-        void rejectsNonPositiveFactor(String factor) {
+        @Test
+        @DisplayName("la categoría y la unidad propias ganan a las heredadas")
+        void variantOverridesDefaults() {
             // Arrange
-            Product product = newProduct();
+            Product principal = newProduct();
+            UUID otherCategoryId = UUID.randomUUID();
+
+            // Act
+            Product variant = principal.createVariant("BEB-BRISA-BOL-24", null,
+                    "Agua Brisa Bolsa x 24", null, otherCategoryId, bag);
+
+            // Assert
+            assertThat(variant.getCategoryId()).isEqualTo(otherCategoryId);
+            assertThat(variant.getUnit()).isEqualTo(bag);
+        }
+
+        @Test
+        @DisplayName("una variante no puede tener variantes propias")
+        void rejectsNestedVariants() {
+            // Arrange
+            Product variant = newProduct().createVariant("BEB-BRISA-BOL-24", null,
+                    "Agua Brisa Bolsa x 24", null, null, bag);
 
             // Act & Assert
-            assertThatThrownBy(() -> product.addUnit(box, new BigDecimal(factor)))
+            assertThatThrownBy(() -> variant.createVariant("OTRO", null, "Otro", null, null, bag))
                     .isInstanceOf(DomainValidationException.class)
-                    .hasMessageContaining("mayor que cero");
+                    .hasMessageContaining("un solo nivel");
         }
 
         @Test
-        @DisplayName("convierte una cantidad de la presentación a unidades base")
-        void convertsToBaseQuantity() {
+        @DisplayName("un producto no puede ser variante de sí mismo")
+        void rejectsSelfParent() {
             // Arrange
-            Product product = newProduct();
-            product.addUnit(box, new BigDecimal("24"));
-            UUID boxUnitId = product.getUnits().stream()
-                    .filter(unit -> unit.getUnitId().equals(box.id()))
-                    .findFirst().orElseThrow().getId();
-
-            // Act
-            Quantity baseQuantity = product.toBaseQuantity(boxUnitId, Quantity.of(3));
-
-            // Assert
-            assertThat(baseQuantity).isEqualTo(Quantity.of(72));
-        }
-
-        @Test
-        @DisplayName("rechaza cambiar el factor de la unidad base")
-        void rejectsChangingBaseUnitFactor() {
-            // Arrange
-            Product product = newProduct();
-            UUID baseUnitId = product.requireBaseUnit().getId();
+            UUID id = UUID.randomUUID();
 
             // Act & Assert
-            assertThatThrownBy(() -> product.changeUnitFactor(baseUnitId, new BigDecimal("5")))
+            assertThatThrownBy(() -> Product.reconstitute(id, ORGANIZATION_ID, id, null,
+                    "SKU-1", null, "Producto", null, bottle, true,
+                    java.time.Instant.now(), java.time.Instant.now()))
                     .isInstanceOf(DomainValidationException.class)
-                    .hasMessageContaining("unidad base siempre tiene factor 1");
-        }
-
-        @Test
-        @DisplayName("rechaza operar sobre una presentación que no pertenece al producto")
-        void rejectsForeignProductUnit() {
-            // Arrange
-            Product product = newProduct();
-            UUID foreignUnitId = UUID.randomUUID();
-
-            // Act & Assert
-            assertThatThrownBy(() -> product.changeUnitFactor(foreignUnitId, new BigDecimal("5")))
-                    .isInstanceOf(DomainValidationException.class)
-                    .hasMessageContaining("no pertenece a este producto");
-        }
-    }
-
-    @Nested
-    @DisplayName("Invariante de la unidad base")
-    class BaseUnitInvariant {
-
-        @Test
-        @DisplayName("siempre existe exactamente una unidad base")
-        void alwaysExactlyOneBaseUnit() {
-            // Arrange
-            Product product = newProduct();
-
-            // Act
-            product.addUnit(box, new BigDecimal("24"));
-            product.addUnit(pallet, new BigDecimal("1200"));
-
-            // Assert
-            assertThat(product.getUnits().stream().filter(ProductUnit::isBaseUnit))
-                    .as("sin una base única no habría forma de saber en qué se mide el stock")
-                    .hasSize(1);
-        }
-
-        @Test
-        @DisplayName("cambiar la base la traslada y degrada la anterior con su nuevo factor")
-        void changingBaseUnitSwapsRoles() {
-            // Arrange
-            Product product = newProduct();
-            product.addUnit(box, new BigDecimal("24"));
-            UUID previousBaseId = product.requireBaseUnit().getId();
-            UUID boxUnitId = product.getUnits().stream()
-                    .filter(unit -> unit.getUnitId().equals(box.id()))
-                    .findFirst().orElseThrow().getId();
-
-            // Act
-            product.changeBaseUnit(boxUnitId, new BigDecimal("0.041667"));
-
-            // Assert
-            assertThat(product.requireBaseUnit().getId()).isEqualTo(boxUnitId);
-            assertThat(product.requireBaseUnit().getConversionFactor())
-                    .isEqualByComparingTo(BigDecimal.ONE);
-            assertThat(product.findUnitById(previousBaseId).orElseThrow().getConversionFactor())
-                    .isEqualByComparingTo(new BigDecimal("0.041667"));
-            assertThat(product.getUnits().stream().filter(ProductUnit::isBaseUnit)).hasSize(1);
-        }
-
-        @Test
-        @DisplayName("designar como base la que ya lo es no cambia nada")
-        void changingToSameBaseIsNoOp() {
-            // Arrange
-            Product product = newProduct();
-            UUID baseUnitId = product.requireBaseUnit().getId();
-
-            // Act
-            product.changeBaseUnit(baseUnitId, new BigDecimal("5"));
-
-            // Assert
-            assertThat(product.requireBaseUnit().getId()).isEqualTo(baseUnitId);
-            assertThat(product.requireBaseUnit().getConversionFactor())
-                    .isEqualByComparingTo(BigDecimal.ONE);
-        }
-
-        @Test
-        @DisplayName("rechaza designar como base una presentación dada de baja")
-        void rejectsInactiveUnitAsBase() {
-            // Arrange
-            Product product = newProduct();
-            product.addUnit(box, new BigDecimal("24"));
-            UUID boxUnitId = product.getUnits().stream()
-                    .filter(unit -> unit.getUnitId().equals(box.id()))
-                    .findFirst().orElseThrow().getId();
-            product.deactivateUnit(boxUnitId);
-
-            // Act & Assert
-            assertThatThrownBy(() -> product.changeBaseUnit(boxUnitId, BigDecimal.ONE))
-                    .isInstanceOf(BusinessRuleViolationException.class)
-                    .hasMessageContaining("dada de baja");
-        }
-
-        @Test
-        @DisplayName("rechaza dar de baja la unidad base")
-        void rejectsDeactivatingBaseUnit() {
-            // Arrange
-            Product product = newProduct();
-            UUID baseUnitId = product.requireBaseUnit().getId();
-
-            // Act & Assert
-            assertThatThrownBy(() -> product.deactivateUnit(baseUnitId))
-                    .isInstanceOf(BusinessRuleViolationException.class)
-                    .hasMessageContaining("No se puede dar de baja la unidad base");
-        }
-
-        @Test
-        @DisplayName("tras cambiar la base, la anterior ya se puede retirar")
-        void previousBaseCanBeDeactivatedAfterSwap() {
-            // Arrange
-            Product product = newProduct();
-            product.addUnit(box, new BigDecimal("24"));
-            UUID previousBaseId = product.requireBaseUnit().getId();
-            UUID boxUnitId = product.getUnits().stream()
-                    .filter(unit -> unit.getUnitId().equals(box.id()))
-                    .findFirst().orElseThrow().getId();
-            product.changeBaseUnit(boxUnitId, new BigDecimal("0.041667"));
-
-            // Act
-            product.deactivateUnit(previousBaseId);
-
-            // Assert
-            assertThat(product.findUnitById(previousBaseId).orElseThrow().isActive()).isFalse();
-            assertThat(product.getActiveUnits()).hasSize(1);
+                    .hasMessageContaining("variante de sí mismo");
         }
     }
 
@@ -333,7 +204,7 @@ class ProductTest {
         }
 
         @Test
-        @DisplayName("actualizar los datos no altera el SKU ni la organización")
+        @DisplayName("actualizar los datos no altera el SKU, la organización ni la unidad")
         void updateKeepsIdentity() {
             // Arrange
             Product product = newProduct();
@@ -341,24 +212,14 @@ class ProductTest {
             UUID newCategoryId = UUID.randomUUID();
 
             // Act
-            product.updateDetails(newCategoryId, "7709999999999", "Agua mineral 1 L", "Nueva");
+            product.updateDetails(newCategoryId, "7709999999999", "Agua Brisa Botella 1.5 L", "Nueva");
 
             // Assert
-            assertThat(product.getName()).isEqualTo("Agua mineral 1 L");
+            assertThat(product.getName()).isEqualTo("Agua Brisa Botella 1.5 L");
             assertThat(product.getCategoryId()).isEqualTo(newCategoryId);
             assertThat(product.getSku()).isEqualTo(originalSku);
             assertThat(product.getOrganizationId()).isEqualTo(ORGANIZATION_ID);
-        }
-
-        @Test
-        @DisplayName("la lista de presentaciones que se expone es inmutable")
-        void exposedUnitsAreUnmodifiable() {
-            // Arrange
-            Product product = newProduct();
-
-            // Act & Assert
-            assertThatThrownBy(() -> product.getUnits().clear())
-                    .isInstanceOf(UnsupportedOperationException.class);
+            assertThat(product.getUnit()).isEqualTo(bottle);
         }
     }
 }

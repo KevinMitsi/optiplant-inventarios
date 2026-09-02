@@ -11,7 +11,6 @@ import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
 import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.Percentage;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import io.github.KevinMitsi.inventories.domain.model.Sale;
 import io.github.KevinMitsi.inventories.domain.model.SaleItem;
@@ -83,7 +82,7 @@ class SaleServiceTest {
     }
 
     private Sale draftSale() {
-        SaleItem item = SaleItem.create(product.getId(), product.requireBaseUnit().getId(), Quantity.of("10"),
+        SaleItem item = SaleItem.create(product.getId(), Quantity.of("10"),
                 Money.of("50.00"), Percentage.ZERO);
         return Sale.create(BRANCH_ID, USER_ID, null, "V-0001", Instant.now(), null, List.of(item));
     }

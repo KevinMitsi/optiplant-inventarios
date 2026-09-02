@@ -9,6 +9,5 @@ public interface ProductPriceRepositoryPort {
 
     ProductPrice save(ProductPrice productPrice);
 
-    Optional<ProductPrice> findByPriceListIdAndProductIdAndProductUnitId(UUID priceListId, UUID productId,
-                                                                         UUID productUnitId);
+    Optional<ProductPrice> findByPriceListIdAndProductId(UUID priceListId, UUID productId);
 }

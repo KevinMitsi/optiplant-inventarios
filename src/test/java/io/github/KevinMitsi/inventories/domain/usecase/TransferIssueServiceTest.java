@@ -52,7 +52,7 @@ class TransferIssueServiceTest {
     void setUp() {
         service = new TransferIssueUseCase(transferIssueRepository, transferRepository);
 
-        item = TransferItem.create(UUID.randomUUID(), UUID.randomUUID(), Quantity.of("10"));
+        item = TransferItem.create(UUID.randomUUID(), Quantity.of("10"));
         transfer = Transfer.create(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "TR-0001",
                 TransferPriority.NORMAL, null, List.of(item));
         transfer.approve(UUID.randomUUID(), Map.of());

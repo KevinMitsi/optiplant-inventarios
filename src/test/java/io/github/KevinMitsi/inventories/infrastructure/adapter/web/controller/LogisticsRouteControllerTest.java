@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -154,12 +155,12 @@ class LogisticsRouteControllerTest extends MockMvcTestSupport {
         User admin = createAdmin(organization);
         LogisticsRouteDtos.LogisticsRouteResponse created = createRoute(organization, admin, origin, destination);
 
-        mockMvc.perform(post("/api/v1/logistics-routes/{routeId}/deactivation", created.id())
+        mockMvc.perform(patch("/api/v1/logistics-routes/{routeId}/deactivation", created.id())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(false)));
 
-        mockMvc.perform(post("/api/v1/logistics-routes/{routeId}/activation", created.id())
+        mockMvc.perform(patch("/api/v1/logistics-routes/{routeId}/activation", created.id())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(true)));

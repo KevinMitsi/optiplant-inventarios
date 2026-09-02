@@ -17,18 +17,16 @@ public final class PurchaseOrderItem {
 
     private final UUID id;
     private final UUID productId;
-    private final UUID productUnitId;
     private final Quantity quantity;
     private final Money unitPrice;
     private final Percentage discountPercentage;
 
     private Quantity receivedQuantity;
 
-    private PurchaseOrderItem(UUID id, UUID productId, UUID productUnitId, Quantity quantity,
+    private PurchaseOrderItem(UUID id, UUID productId, Quantity quantity,
                               Quantity receivedQuantity, Money unitPrice, Percentage discountPercentage) {
         this.id = Objects.requireNonNull(id, "El identificador de la línea no puede ser nulo.");
         this.productId = Objects.requireNonNull(productId, "La línea debe referenciar un producto.");
-        this.productUnitId = Objects.requireNonNull(productUnitId, "La línea debe referenciar una presentación.");
         this.quantity = requirePositive(quantity);
         this.receivedQuantity = Objects.requireNonNull(receivedQuantity, "La cantidad recibida no puede ser nula.");
         this.unitPrice = Objects.requireNonNull(unitPrice, "El precio unitario es obligatorio.");
@@ -39,16 +37,16 @@ public final class PurchaseOrderItem {
         }
     }
 
-    public static PurchaseOrderItem create(UUID productId, UUID productUnitId, Quantity quantity,
+    public static PurchaseOrderItem create(UUID productId, Quantity quantity,
                                            Money unitPrice, Percentage discountPercentage) {
-        return new PurchaseOrderItem(UUID.randomUUID(), productId, productUnitId, quantity, Quantity.ZERO,
+        return new PurchaseOrderItem(UUID.randomUUID(), productId, quantity, Quantity.ZERO,
                 unitPrice, discountPercentage);
     }
 
-    public static PurchaseOrderItem reconstitute(UUID id, UUID productId, UUID productUnitId, Quantity quantity,
+    public static PurchaseOrderItem reconstitute(UUID id, UUID productId, Quantity quantity,
                                                  Quantity receivedQuantity, Money unitPrice,
                                                  Percentage discountPercentage) {
-        return new PurchaseOrderItem(id, productId, productUnitId, quantity, receivedQuantity, unitPrice,
+        return new PurchaseOrderItem(id, productId, quantity, receivedQuantity, unitPrice,
                 discountPercentage);
     }
 
@@ -100,10 +98,6 @@ public final class PurchaseOrderItem {
 
     public UUID getProductId() {
         return productId;
-    }
-
-    public UUID getProductUnitId() {
-        return productUnitId;
     }
 
     public Quantity getQuantity() {

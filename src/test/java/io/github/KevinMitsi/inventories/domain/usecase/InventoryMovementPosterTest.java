@@ -74,6 +74,11 @@ class InventoryMovementPosterTest {
                 quantity, unitCost, "Compra a proveedor", USER_ID, Instant.now(), UUID.randomUUID(), null, null, null);
     }
 
+    private PostInventoryMovementCommand transferIn(BigDecimal quantity, BigDecimal unitCost) {
+        return new PostInventoryMovementCommand(BRANCH_ID, PRODUCT_ID, "SKU-1", InventoryMovementType.TRANSFER_IN,
+                quantity, unitCost, "Transferencia TR-0001", USER_ID, Instant.now(), null, null, UUID.randomUUID(), null);
+    }
+
     private PostInventoryMovementCommand saleOut(BigDecimal quantity) {
         return PostInventoryMovementCommand.withoutReference(BRANCH_ID, PRODUCT_ID, "SKU-1",
                 InventoryMovementType.SALE_OUT, quantity, "Venta", USER_ID);
@@ -127,7 +132,7 @@ class InventoryMovementPosterTest {
         void recalculatesWeightedAverage() {
             // Arrange: saldo previo 10 unidades a 100
             Inventory existing = Inventory.open(BRANCH_ID, PRODUCT_ID);
-            existing.receivePurchase(Quantity.of("10"), Money.of("100.00"));
+            existing.receiveWithCost(Quantity.of("10"), Money.of("100.00"));
             when(inventoryRepository.findByBranchIdAndProductId(BRANCH_ID, PRODUCT_ID))
                     .thenReturn(Optional.of(existing));
 
@@ -135,6 +140,27 @@ class InventoryMovementPosterTest {
 
             // Act: compra de 10 más a 200 -> (10*100 + 10*200) / 20 = 150
             InventoryMovement movement = poster.post(purchase(new BigDecimal("10"), new BigDecimal("200.00")));
+
+            // Assert
+            verify(inventoryRepository).save(captor.capture());
+            assertThat(captor.getValue().getAverageCost().amount())
+                    .isEqualByComparingTo(new BigDecimal("150.0000"));
+            assertThat(movement.getUnitCost().amount()).isEqualByComparingTo(new BigDecimal("200.0000"));
+        }
+
+        @Test
+        @DisplayName("recibir una transferencia también recalcula el costo ponderado, con el costo heredado del origen")
+        void transferInAlsoRecalculatesWeightedAverage() {
+            // Arrange: saldo previo en destino, 10 unidades a 100
+            Inventory existing = Inventory.open(BRANCH_ID, PRODUCT_ID);
+            existing.receiveWithCost(Quantity.of("10"), Money.of("100.00"));
+            when(inventoryRepository.findByBranchIdAndProductId(BRANCH_ID, PRODUCT_ID))
+                    .thenReturn(Optional.of(existing));
+
+            ArgumentCaptor<Inventory> captor = ArgumentCaptor.forClass(Inventory.class);
+
+            // Act: llegan 10 más, con el costo que traía el origen (200) -> (10*100 + 10*200) / 20 = 150
+            InventoryMovement movement = poster.post(transferIn(new BigDecimal("10"), new BigDecimal("200.00")));
 
             // Assert
             verify(inventoryRepository).save(captor.capture());

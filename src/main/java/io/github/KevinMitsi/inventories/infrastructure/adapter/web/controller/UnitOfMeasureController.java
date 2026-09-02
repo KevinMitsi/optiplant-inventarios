@@ -28,7 +28,7 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Unidades de medida",
      description = "Catálogo global de unidades. Es compartido por todas las organizaciones "
-             + "y sirve de base a las presentaciones de cada producto.")
+             + "y es donde cada producto elige la unidad en la que se cuenta su stock.")
 public class UnitOfMeasureController {
 
     private final QueryUnitOfMeasureUseCase queryUnitOfMeasureUseCase;

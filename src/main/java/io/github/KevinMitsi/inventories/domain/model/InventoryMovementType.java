@@ -12,8 +12,10 @@ import java.util.Locale;
  * de negocio, no un dato: si viviera en una fila de base de datos, alguien podría insertar
  * {@code PURCHASE_IN} con dirección de salida y nada lo impediría.
  *
- * <p>Solo {@link #PURCHASE_IN} recalcula el costo promedio ponderado del inventario
- * (RF-23) — es el único tipo que llega acompañado de un costo unitario real y verificable.
+ * <p>{@link #PURCHASE_IN} y {@link #TRANSFER_IN} recalculan el costo promedio ponderado del
+ * inventario (RF-23): son los únicos tipos que llegan acompañados de un costo unitario real
+ * y verificable — el de la compra, o el heredado del saldo de origen al recibir una
+ * transferencia.
  */
 public enum InventoryMovementType {
 

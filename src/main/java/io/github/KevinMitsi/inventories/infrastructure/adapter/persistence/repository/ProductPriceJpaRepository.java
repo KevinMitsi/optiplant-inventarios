@@ -8,6 +8,5 @@ import java.util.UUID;
 
 public interface ProductPriceJpaRepository extends JpaRepository<ProductPriceJpaEntity, UUID> {
 
-    Optional<ProductPriceJpaEntity> findByPriceListIdAndProductIdAndProductUnitId(
-            UUID priceListId, UUID productId, UUID productUnitId);
+    Optional<ProductPriceJpaEntity> findByPriceListIdAndProductId(UUID priceListId, UUID productId);
 }

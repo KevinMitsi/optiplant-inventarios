@@ -132,8 +132,9 @@ public class UseCaseConfig {
     }
 
     @Bean
-    public InventoryAlertUseCase inventoryAlertUseCase(InventoryAlertRepositoryPort inventoryAlertRepositoryPort) {
-        return new InventoryAlertUseCase(inventoryAlertRepositoryPort);
+    public InventoryAlertUseCase inventoryAlertUseCase(InventoryAlertRepositoryPort inventoryAlertRepositoryPort,
+                                                        InventoryRepositoryPort inventoryRepositoryPort) {
+        return new InventoryAlertUseCase(inventoryAlertRepositoryPort, inventoryRepositoryPort);
     }
 
     @Bean
@@ -165,10 +166,11 @@ public class UseCaseConfig {
                                             ProductRepositoryPort productRepositoryPort,
                                             CarrierRepositoryPort carrierRepositoryPort,
                                             LogisticsRouteRepositoryPort logisticsRouteRepositoryPort,
+                                            InventoryRepositoryPort inventoryRepositoryPort,
                                             InventoryMovementPoster inventoryMovementPoster) {
         return new TransferUseCase(transferRepositoryPort, transferIssueRepositoryPort,
                 transferStatusHistoryRepositoryPort, branchRepositoryPort, productRepositoryPort,
-                carrierRepositoryPort, logisticsRouteRepositoryPort, inventoryMovementPoster);
+                carrierRepositoryPort, logisticsRouteRepositoryPort, inventoryRepositoryPort, inventoryMovementPoster);
     }
 
     @Bean

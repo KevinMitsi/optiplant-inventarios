@@ -12,18 +12,20 @@ import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTrans
 import io.github.KevinMitsi.inventories.application.port.in.query.TransferSearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
+import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
 import io.github.KevinMitsi.inventories.domain.model.LogisticsRoute;
+import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import io.github.KevinMitsi.inventories.domain.model.Transfer;
 import io.github.KevinMitsi.inventories.domain.model.TransferIssue;
@@ -58,6 +60,7 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
     private final ProductRepositoryPort productRepository;
     private final CarrierRepositoryPort carrierRepository;
     private final LogisticsRouteRepositoryPort routeRepository;
+    private final InventoryRepositoryPort inventoryRepository;
     private final InventoryMovementPoster poster;
 
     public TransferUseCase(TransferRepositoryPort transferRepository,
@@ -67,6 +70,7 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
                            ProductRepositoryPort productRepository,
                            CarrierRepositoryPort carrierRepository,
                            LogisticsRouteRepositoryPort routeRepository,
+                           InventoryRepositoryPort inventoryRepository,
                            InventoryMovementPoster poster) {
         this.transferRepository = transferRepository;
         this.transferIssueRepository = transferIssueRepository;
@@ -75,6 +79,7 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
         this.productRepository = productRepository;
         this.carrierRepository = carrierRepository;
         this.routeRepository = routeRepository;
+        this.inventoryRepository = inventoryRepository;
         this.poster = poster;
     }
 
@@ -221,22 +226,35 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
         return transferRepository.search(criteria, pageQuery);
     }
 
-    private void postMovement(UUID branchId, TransferItem item, Quantity quantityInLineUnit,
+    private void postMovement(UUID branchId, TransferItem item, Quantity quantity,
                               InventoryMovementType type, Transfer transfer, UUID userId) {
         Product product = requireProduct(item.getProductId());
-        ProductUnit productUnit = requireProductUnit(product, item.getProductUnitId());
-        Quantity baseQuantity = quantityInLineUnit.toBaseUnit(productUnit.getConversionFactor());
+
+        BigDecimal unitCost = type == InventoryMovementType.TRANSFER_IN
+                ? resolveOriginCost(transfer.getOriginBranchId(), item.getProductId())
+                : null;
 
         poster.post(new PostInventoryMovementCommand(branchId, item.getProductId(), product.getSku(), type,
-                baseQuantity.value(), null, "Transferencia %s".formatted(transfer.getTransferNumber()), userId,
+                quantity.value(), unitCost, "Transferencia %s".formatted(transfer.getTransferNumber()), userId,
                 Instant.now(), null, null, transfer.getId(), null));
     }
 
-    private TransferItem toItem(CreateTransferCommand.Item item) {
-        Product product = requireProduct(item.productId());
-        requireProductUnit(product, item.productUnitId());
+    /**
+     * El costo con el que se recibe una transferencia es el costo promedio ponderado que ya
+     * tenía el saldo de origen: la transferencia no genera valor nuevo, solo lo mueve entre
+     * sucursales (a diferencia de {@code PURCHASE_IN}, que sí trae un costo real de compra).
+     */
+    private BigDecimal resolveOriginCost(UUID originBranchId, UUID productId) {
+        return inventoryRepository.findByBranchIdAndProductId(originBranchId, productId)
+                .map(Inventory::getAverageCost)
+                .map(Money::amount)
+                .orElse(BigDecimal.ZERO);
+    }
 
-        return TransferItem.create(item.productId(), item.productUnitId(), Quantity.of(item.quantity()));
+    private TransferItem toItem(CreateTransferCommand.Item item) {
+        requireProduct(item.productId());
+
+        return TransferItem.create(item.productId(), Quantity.of(item.quantity()));
     }
 
     private Map<UUID, Quantity> toQuantityMap(Map<UUID, BigDecimal> raw) {
@@ -258,11 +276,5 @@ public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseC
     private Product requireProduct(UUID productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, productId));
-    }
-
-    private ProductUnit requireProductUnit(Product product, UUID productUnitId) {
-        return product.findUnitById(productUnitId)
-                .orElseThrow(() -> new DomainValidationException("productUnitId",
-                        "La presentación indicada no pertenece al producto '%s'.".formatted(product.getSku())));
     }
 }

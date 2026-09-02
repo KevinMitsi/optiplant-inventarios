@@ -36,9 +36,6 @@ public class TransferItemJpaEntity {
     @Column(name = "product_id", nullable = false, updatable = false)
     private UUID productId;
 
-    @Column(name = "product_unit_id", nullable = false, updatable = false)
-    private UUID productUnitId;
-
     @Column(name = "requested_quantity", nullable = false, updatable = false, precision = 18, scale = 6)
     private BigDecimal requestedQuantity;
 

@@ -27,7 +27,7 @@ class TransferTest {
 
     @BeforeEach
     void setUp() {
-        item = TransferItem.create(UUID.randomUUID(), UUID.randomUUID(), Quantity.of("10"));
+        item = TransferItem.create(UUID.randomUUID(), Quantity.of("10"));
     }
 
     private Transfer newTransfer() {

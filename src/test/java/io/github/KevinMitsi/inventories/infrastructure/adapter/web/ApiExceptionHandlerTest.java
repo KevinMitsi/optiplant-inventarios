@@ -7,6 +7,7 @@ import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundEx
 import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
 import io.github.KevinMitsi.inventories.domain.exception.InsufficientStockException;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ApiErrorResponse;
+import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.SaleDtos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,15 +16,21 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.core.MethodParameter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -275,6 +282,135 @@ class ApiExceptionHandlerTest {
 
             // Assert
             assertThat(body.validationErrors().getFirst().rejectedValue()).isNull();
+        }
+
+        @Test
+        @DisplayName("el mensaje resume los campos, para el cliente que solo muestra esa línea")
+        void messageNamesTheOffendingFields() {
+            // Arrange
+            MethodArgumentNotValidException exception = validationExceptionFor("quantity", -3);
+
+            // Act
+            ApiErrorResponse body = handler.handleBodyValidation(exception, request).getBody();
+
+            // Assert
+            assertThat(body.message()).contains("quantity", "El valor no es válido.");
+        }
+
+        @Test
+        @DisplayName("un error global, que no señala a un campo, no se pierde")
+        void reportsGlobalErrors() {
+            // Arrange
+            BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "request");
+            bindingResult.addError(new ObjectError("request", "La fecha final precede a la inicial."));
+            MethodArgumentNotValidException exception =
+                    new MethodArgumentNotValidException((MethodParameter) null, bindingResult);
+
+            // Act
+            ApiErrorResponse body = handler.handleBodyValidation(exception, request).getBody();
+
+            // Assert
+            assertThat(body.validationErrors()).hasSize(1);
+            assertThat(body.validationErrors().getFirst().field()).isNull();
+            assertThat(body.validationErrors().getFirst().message())
+                    .isEqualTo("La fecha final precede a la inicial.");
+        }
+    }
+
+    @Nested
+    @DisplayName("Cuerpo ilegible")
+    class UnreadableBody {
+
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        /** Reproduce el fallo real de Jackson en vez de simularlo: el camino del campo importa. */
+        private HttpMessageNotReadableException parseFailureFor(String json) {
+            try {
+                objectMapper.readValue(json, SaleDtos.CreateSaleRequest.class);
+                throw new AssertionError("Se esperaba que el JSON fuese rechazado: " + json);
+            } catch (JacksonException cause) {
+                return new HttpMessageNotReadableException("no leído", cause,
+                        new MockHttpInputMessage(json.getBytes(StandardCharsets.UTF_8)));
+            }
+        }
+
+        @Test
+        @DisplayName("una fecha mal formada dice qué campo y qué formato se esperaba")
+        void reportsBadDateField() {
+            // Arrange: lo que manda un <input type="datetime-local"> sin convertir a UTC
+            HttpMessageNotReadableException exception = parseFailureFor("""
+                    {"saleNumber":"V-1","saleDate":"2026-09-01T10:30","items":[]}""");
+
+            // Act
+            ResponseEntity<ApiErrorResponse> response = handler.handleUnreadableBody(exception, request);
+            ApiErrorResponse body = response.getBody();
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(body.code()).isEqualTo("INVALID_FIELD_FORMAT");
+            assertThat(body.validationErrors()).singleElement()
+                    .extracting(ApiErrorResponse.ValidationError::field).isEqualTo("saleDate");
+            assertThat(body.message()).contains("ISO-8601");
+        }
+
+        @Test
+        @DisplayName("un identificador inválido dentro de una línea señala su posición en la lista")
+        void reportsPathInsideCollection() {
+            // Arrange
+            HttpMessageNotReadableException exception = parseFailureFor("""
+                    {"saleNumber":"V-1","saleDate":"2026-09-01T10:30:00Z",\
+                    "items":[{"productId":"no-es-un-uuid","quantity":1}]}""");
+
+            // Act
+            ApiErrorResponse body = handler.handleUnreadableBody(exception, request).getBody();
+
+            // Assert
+            assertThat(body.validationErrors()).singleElement()
+                    .extracting(ApiErrorResponse.ValidationError::field).isEqualTo("items[0].productId");
+            assertThat(body.validationErrors().getFirst().rejectedValue()).isEqualTo("no-es-un-uuid");
+        }
+
+        @Test
+        @DisplayName("un JSON roto devuelve la posición del fallo y nada más")
+        void reportsSyntaxPosition() {
+            // Arrange
+            HttpMessageNotReadableException exception = parseFailureFor("{\"saleNumber\":");
+
+            // Act
+            ApiErrorResponse body = handler.handleUnreadableBody(exception, request).getBody();
+
+            // Assert
+            assertThat(body.code()).isEqualTo("MALFORMED_JSON");
+            assertThat(body.details()).containsKey("line").containsKey("column");
+        }
+
+        @Test
+        @DisplayName("un cuerpo ausente se distingue de un cuerpo mal formado")
+        void reportsMissingBody() {
+            // Arrange: sin causa de Jackson, porque no se llegó a analizar nada
+            HttpMessageNotReadableException exception = new HttpMessageNotReadableException(
+                    "Required request body is missing", new MockHttpInputMessage(new byte[0]));
+
+            // Act
+            ApiErrorResponse body = handler.handleUnreadableBody(exception, request).getBody();
+
+            // Assert
+            assertThat(body.code()).isEqualTo("MALFORMED_REQUEST");
+            assertThat(body.message()).contains("vacío");
+        }
+
+        @Test
+        @DisplayName("nunca devuelve el mensaje original de Jackson, que nombra clases internas")
+        void hidesJacksonInternals() {
+            // Arrange
+            HttpMessageNotReadableException exception = parseFailureFor("""
+                    {"saleNumber":"V-1","saleDate":"2026-09-01T10:30","items":[]}""");
+
+            // Act
+            ApiErrorResponse body = handler.handleUnreadableBody(exception, request).getBody();
+
+            // Assert
+            assertThat(body.message()).doesNotContain("io.github", "CreateSaleRequest", "java.time");
         }
     }
 }

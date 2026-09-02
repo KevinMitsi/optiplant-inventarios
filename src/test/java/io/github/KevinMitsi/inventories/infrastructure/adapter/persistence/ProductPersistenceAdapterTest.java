@@ -80,8 +80,27 @@ class ProductPersistenceAdapterTest {
         ArgumentCaptor<ProductJpaEntity> captor = ArgumentCaptor.forClass(ProductJpaEntity.class);
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getSku()).isEqualTo("BEB-AGUA-600");
+        assertThat(captor.getValue().getUnit().getCode()).isEqualTo("UNIT");
         assertThat(saved.getSku()).isEqualTo("BEB-AGUA-600");
-        assertThat(saved.getUnits()).hasSize(1);
+        assertThat(saved.getUnit()).isEqualTo(bottle);
+    }
+
+    @Test
+    @DisplayName("lista las variantes de un producto traducidas a dominio")
+    void listsVariants() {
+        // Arrange
+        Product principal = sampleProduct();
+        Product variant = principal.createVariant("BEB-AGUA-BOL", null, "Agua bolsa",
+                null, null, null);
+        when(repository.findByParentProductIdOrderByNameAsc(PRODUCT_ID))
+                .thenReturn(List.of(mapper.toEntity(variant)));
+
+        // Act
+        List<Product> variants = adapter.findVariants(PRODUCT_ID);
+
+        // Assert
+        assertThat(variants).hasSize(1);
+        assertThat(variants.getFirst().getParentProductId()).isEqualTo(principal.getId());
     }
 
     @Test

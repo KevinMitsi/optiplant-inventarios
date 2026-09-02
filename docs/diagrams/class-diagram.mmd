@@ -1,0 +1,98 @@
+classDiagram
+  class Organization { +UUID id +String code +String name +boolean active }
+  class Branch { +UUID id +UUID organizationId +String code +boolean active }
+  Organization "1" --> "*" Branch : organizationId
+
+  class RoleCode { <<enumeration>> ADMIN BRANCH_MANAGER INVENTORY_OPERATOR }
+  class Role { +UUID id +RoleCode code }
+  class User { +UUID id +UUID organizationId +UUID branchId +UUID roleId +String email +String passwordHash }
+  Organization "1" --> "*" User
+  Branch "0..1" --> "*" User
+  Role "1" --> "*" User
+
+  class Category { +UUID id +UUID organizationId +String code }
+  class UnitOfMeasure { +UUID id +String code +String symbol }
+  class Product { +UUID id +UUID organizationId +UUID categoryId +UUID unitId +UUID parentProductId +String sku }
+  Organization "1" --> "*" Product
+  Category "0..1" --> "*" Product
+  UnitOfMeasure "1" --> "*" Product
+  Product "0..1" --> "*" Product : variantes
+
+  class Inventory { +UUID id +UUID branchId +UUID productId +Quantity quantity +Quantity minimumStock +Money averageCost +int version }
+  Branch "1" --> "*" Inventory
+  Product "1" --> "1" Inventory
+
+  class InventoryAdjustment { +UUID id +UUID branchId +UUID createdBy +UUID approvedBy +String reason }
+  class InventoryAdjustmentItem { +UUID id +UUID adjustmentId +UUID productId +Quantity quantityDelta }
+  InventoryAdjustment "1" *-- "*" InventoryAdjustmentItem
+  Product "1" --> "*" InventoryAdjustmentItem
+  Branch "1" --> "*" InventoryAdjustment
+  User "1" --> "*" InventoryAdjustment
+
+  class InventoryMovementType { <<enumeration>> PURCHASE_IN SALE_OUT TRANSFER_IN TRANSFER_OUT RETURN_IN LOSS_OUT ADJUSTMENT_IN ADJUSTMENT_OUT }
+  class InventoryMovement { +UUID id +UUID inventoryId +InventoryMovementType movementType +UUID userId +Quantity quantity +Money unitCost +UUID purchaseOrderId +UUID saleId +UUID transferId +UUID adjustmentId }
+  Inventory "1" --> "*" InventoryMovement
+  User "1" --> "*" InventoryMovement
+  InventoryAdjustment "0..1" --> "*" InventoryMovement
+
+  class InventoryAlertType { <<enumeration>> LOW_STOCK OUT_OF_STOCK OVERSTOCK }
+  class InventoryAlertStatus { <<enumeration>> OPEN RESOLVED DISMISSED }
+  class InventoryAlert { +UUID id +UUID inventoryId +InventoryAlertType alertType +InventoryAlertStatus status +Quantity triggeredQuantity }
+  Inventory "1" --> "*" InventoryAlert
+
+  class Supplier { +UUID id +UUID organizationId +String code }
+  Organization "1" --> "*" Supplier
+  class PurchaseOrderStatus { <<enumeration>> DRAFT CONFIRMED PARTIALLY_RECEIVED RECEIVED CANCELLED }
+  class PurchaseOrder { +UUID id +UUID branchId +UUID supplierId +UUID createdBy +PurchaseOrderStatus status +String orderNumber }
+  Branch "1" --> "*" PurchaseOrder
+  Supplier "1" --> "*" PurchaseOrder
+  User "1" --> "*" PurchaseOrder
+  class PurchaseOrderItem { +UUID id +UUID purchaseOrderId +UUID productId +Quantity quantity +Quantity receivedQuantity +Money unitPrice +Percentage discountPercentage }
+  PurchaseOrder "1" *-- "*" PurchaseOrderItem
+  Product "1" --> "*" PurchaseOrderItem
+  PurchaseOrder "1" --> "*" InventoryMovement
+
+  class PriceList { +UUID id +UUID organizationId +String code +LocalDate validFrom }
+  Organization "1" --> "*" PriceList
+  class ProductPrice { +UUID id +UUID priceListId +UUID productId +Money price }
+  PriceList "1" *-- "*" ProductPrice
+  Product "1" --> "*" ProductPrice
+
+  class SaleStatus { <<enumeration>> DRAFT CONFIRMED CANCELLED }
+  class Sale { +UUID id +UUID branchId +UUID createdBy +UUID priceListId +SaleStatus status +String saleNumber }
+  Branch "1" --> "*" Sale
+  User "1" --> "*" Sale
+  PriceList "0..1" --> "*" Sale
+  class SaleItem { +UUID id +UUID saleId +UUID productId +Quantity quantity +Money unitPrice +Percentage discountPercentage }
+  Sale "1" *-- "*" SaleItem
+  Product "1" --> "*" SaleItem
+  Sale "1" --> "*" InventoryMovement
+
+  class Carrier { +UUID id +UUID organizationId +String code }
+  Organization "1" --> "*" Carrier
+  class LogisticsRoute { +UUID id +UUID organizationId +UUID originBranchId +UUID destinationBranchId +int estimatedDurationMinutes }
+  Organization "1" --> "*" LogisticsRoute
+  Branch "1" --> "*" LogisticsRoute
+
+  class TransferStatus { <<enumeration>> REQUESTED APPROVED IN_PREPARATION IN_TRANSIT PARTIALLY_RECEIVED RECEIVED ISSUE_PENDING CANCELLED CLOSED }
+  class TransferPriority { <<enumeration>> LOW NORMAL HIGH URGENT }
+  class Transfer { +UUID id +String transferNumber +UUID originBranchId +UUID destinationBranchId +UUID requestedBy +UUID approvedBy +TransferStatus status +TransferPriority priority +UUID carrierId +UUID routeId }
+  Branch "1" --> "*" Transfer
+  User "1" --> "*" Transfer
+  Carrier "0..1" --> "*" Transfer
+  LogisticsRoute "0..1" --> "*" Transfer
+  Transfer "1" --> "*" InventoryMovement
+
+  class TransferItem { +UUID id +UUID transferId +UUID productId +Quantity requestedQuantity +Quantity approvedQuantity +Quantity shippedQuantity +Quantity receivedQuantity }
+  Transfer "1" *-- "*" TransferItem
+  Product "1" --> "*" TransferItem
+
+  class TransferStatusHistory { +UUID id +UUID transferId +TransferStatus status +UUID changedBy }
+  Transfer "1" *-- "*" TransferStatusHistory
+  User "1" --> "*" TransferStatusHistory
+
+  class TransferIssueType { <<enumeration>> MISSING DAMAGED WRONG_PRODUCT OTHER }
+  class TransferIssueResolution { <<enumeration>> RESHIPMENT ADJUSTMENT CLAIM }
+  class TransferIssue { +UUID id +UUID transferItemId +TransferIssueType issueType +TransferIssueResolution resolutionType +Quantity quantity +UUID reportedBy +UUID resolvedBy }
+  TransferItem "1" --> "*" TransferIssue
+  User "1" --> "*" TransferIssue

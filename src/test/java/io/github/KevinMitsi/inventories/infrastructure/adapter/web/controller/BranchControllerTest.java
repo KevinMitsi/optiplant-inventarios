@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -147,12 +148,12 @@ class BranchControllerTest extends MockMvcTestSupport {
         Branch branch = createBranch(organization);
         User admin = createAdmin(organization);
 
-        mockMvc.perform(post("/api/v1/branches/{branchId}/deactivation", branch.getId())
+        mockMvc.perform(patch("/api/v1/branches/{branchId}/deactivation", branch.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(false)));
 
-        mockMvc.perform(post("/api/v1/branches/{branchId}/activation", branch.getId())
+        mockMvc.perform(patch("/api/v1/branches/{branchId}/activation", branch.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", is(true)));

@@ -90,6 +90,7 @@ class InventoryServiceTest {
             // Assert
             assertThat(result.getMinimumStock()).isEqualTo(Quantity.of("10"));
             assertThat(result.getQuantity()).isEqualTo(Quantity.ZERO);
+            verify(poster).evaluateAlerts(result);
         }
 
         @Test

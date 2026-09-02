@@ -14,5 +14,5 @@ public interface QueryPriceListUseCase {
 
     PageResult<PriceList> searchPriceLists(PriceListSearchCriteria criteria, PageQuery pageQuery);
 
-    ProductPrice getProductPrice(UUID priceListId, UUID productId, UUID productUnitId);
+    ProductPrice getProductPrice(UUID priceListId, UUID productId);
 }
