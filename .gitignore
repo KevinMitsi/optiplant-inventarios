@@ -46,3 +46,7 @@ ROADMAP.md
 !.env.example
 
 .idea/
+
+# Lanzadores locales de Windows (no versionados, uso personal)
+iniciar-app.bat
+detener-app.bat
