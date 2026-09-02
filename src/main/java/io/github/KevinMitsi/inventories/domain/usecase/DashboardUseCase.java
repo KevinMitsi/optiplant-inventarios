@@ -4,6 +4,7 @@ import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundEx
 import io.github.KevinMitsi.inventories.application.port.in.QueryDashboardUseCase;
 import io.github.KevinMitsi.inventories.application.port.out.DashboardRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.BranchComparison;
 import io.github.KevinMitsi.inventories.domain.model.ProductRotation;
 import io.github.KevinMitsi.inventories.domain.model.SalesSummary;
@@ -12,6 +13,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@AuditedUseCase
 public class DashboardUseCase implements QueryDashboardUseCase {
 
     private static final String ORGANIZATION = "la organización";

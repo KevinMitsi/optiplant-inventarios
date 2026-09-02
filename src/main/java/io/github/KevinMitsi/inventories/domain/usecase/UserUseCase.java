@@ -15,6 +15,7 @@ import io.github.KevinMitsi.inventories.application.port.out.OrganizationReposit
 import io.github.KevinMitsi.inventories.application.port.out.PasswordHasherPort;
 import io.github.KevinMitsi.inventories.application.port.out.RoleRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
 import io.github.KevinMitsi.inventories.domain.model.Branch;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class UserUseCase implements ManageUserUseCase, QueryUserUseCase {
 
     private static final Logger log = Logger.getLogger(UserUseCase.class.getName());

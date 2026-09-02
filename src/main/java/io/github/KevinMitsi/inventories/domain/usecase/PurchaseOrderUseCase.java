@@ -11,6 +11,7 @@ import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPor
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.PurchaseOrderRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.SupplierRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
 import io.github.KevinMitsi.inventories.domain.model.Money;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class PurchaseOrderUseCase implements ManagePurchaseOrderUseCase, QueryPurchaseOrderUseCase {
 
     private static final Logger log = Logger.getLogger(PurchaseOrderUseCase.class.getName());

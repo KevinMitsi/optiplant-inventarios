@@ -4,6 +4,7 @@ import io.github.KevinMitsi.inventories.application.port.out.OrganizationReposit
 import io.github.KevinMitsi.inventories.application.port.out.PasswordHasherPort;
 import io.github.KevinMitsi.inventories.application.port.out.RoleRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Organization;
 import io.github.KevinMitsi.inventories.domain.model.Role;
 import io.github.KevinMitsi.inventories.domain.model.RoleCode;
@@ -20,6 +21,7 @@ import java.util.logging.Logger;
  * administrador si todavía no existen, de modo que reiniciar la aplicación nunca
  * restablece una contraseña ya cambiada desde la API.
  */
+@AuditedUseCase
 public class AdminBootstrapUseCase {
 
     private static final Logger log = Logger.getLogger(AdminBootstrapUseCase.class.getName());

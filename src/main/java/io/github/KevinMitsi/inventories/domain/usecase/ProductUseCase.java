@@ -13,6 +13,7 @@ import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryP
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
 import io.github.KevinMitsi.inventories.domain.model.Category;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase {
 
     private static final Logger log = Logger.getLogger(ProductUseCase.class.getName());

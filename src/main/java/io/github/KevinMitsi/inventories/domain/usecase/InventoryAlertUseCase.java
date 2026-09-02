@@ -6,6 +6,7 @@ import io.github.KevinMitsi.inventories.application.port.in.query.InventoryAlert
 import io.github.KevinMitsi.inventories.application.port.in.result.InventoryAlertDetail;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAlert;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -14,6 +15,7 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class InventoryAlertUseCase implements ManageInventoryAlertUseCase {
 
     private static final Logger log = Logger.getLogger(InventoryAlertUseCase.class.getName());

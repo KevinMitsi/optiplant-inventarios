@@ -44,10 +44,21 @@ services:
   front:
     image: kevinmitsi/inventories-front
     container_name: inventories-front
+    depends_on:
+      - app
+    networks:
+      - inventories-net
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: inventories-gateway
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - '4200:80'
     depends_on:
       - app
+      - front
     networks:
       - inventories-net
 

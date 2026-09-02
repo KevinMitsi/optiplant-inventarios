@@ -1,5 +1,6 @@
 package io.github.KevinMitsi.inventories.infrastructure.config;
 
+import io.github.KevinMitsi.inventories.application.port.out.ActivityLogRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
@@ -24,6 +25,7 @@ import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryP
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.usecase.ActivityLogUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.AdminBootstrapUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.AuthenticationUseCase;
 import io.github.KevinMitsi.inventories.domain.usecase.BranchUseCase;
@@ -55,6 +57,16 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class UseCaseConfig {
+
+    /**
+     * Caso de uso de la traza de auditoría. Es el único que no lleva {@code @AuditedUseCase}:
+     * auditar la escritura de una entrada generaría otra entrada, sin fin.
+     */
+    @Bean
+    public ActivityLogUseCase activityLogUseCase(ActivityLogRepositoryPort activityLogRepositoryPort,
+                                                   OrganizationRepositoryPort organizationRepositoryPort) {
+        return new ActivityLogUseCase(activityLogRepositoryPort, organizationRepositoryPort);
+    }
 
     @Bean
     public InventoryMovementPoster inventoryMovementPoster(InventoryRepositoryPort inventoryRepositoryPort,

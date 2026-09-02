@@ -91,6 +91,16 @@ The codebase now implements ports-and-adapters, not just a skeleton. Package lay
 - `infrastructure.adapter.security` — JWT (JJWT `io.jsonwebtoken`): `JwtTokenProviderAdapter` (issues tokens),
   `JwtAuthenticationFilter` (verifies them per request), `SecurityConfig` (public vs. authenticated paths). No
   bootstrap/auto-seed admin — the app has no automatic first-admin provisioning.
+- `infrastructure.adapter.logging` — centralized audit trail. `AuditedUseCaseRegistrar` (a
+  `SmartInitializingSingleton`) finds every bean whose class carries `domain.annotation.@AuditedUseCase` and
+  attaches `ActivityLogHandler` (a `java.util.logging.Handler`) to that class's logger; from then on every
+  `log.info/warning/severe` a use case already writes also becomes an `activity_log` row with date, username,
+  role and operation. Use cases contain **zero** audit code — adding `@AuditedUseCase` to a new use case is the
+  whole integration. The handler resolves the actor via `CurrentUserProvider` (identity is infrastructure's job,
+  not the domain's), never throws into the audited operation, and guards against re-entrancy.
+  `ActivityLogService.record` runs `Propagation.REQUIRES_NEW` on purpose: a rejected sale must still leave its
+  trace when the business transaction rolls back. `ActivityLogUseCase` is the one use case that must **not** be
+  annotated — auditing the audit writer recurses forever.
 
 Request flow: `Controller` → `port.in` interface → `application.service.*Service` (`@Transactional` starts here)
 → `domain.usecase` (pure business logic) → `port.out` interface → `*PersistenceAdapter` (transaction commits/rolls
@@ -98,7 +108,9 @@ back when the service method returns).
 
 When adding a new use case: write the interface(s) in `application.port.in`, the outbound interface(s) in
 `application.port.out` if new persistence/infra access is needed, the pure-Java implementation in `domain.usecase`,
-a wiring `@Bean` in `UseCaseConfig`, and a delegating `@Transactional` wrapper in `application.service`. Keep
+a wiring `@Bean` in `UseCaseConfig`, and a delegating `@Transactional` wrapper in `application.service`.
+Annotate the new `domain.usecase` class with `@AuditedUseCase` so its `log.info(...)` calls reach the audit
+trail. Keep
 comments in `domain.usecase` to a minimum — only for genuinely non-obvious logic (e.g. timing-safe auth failure,
 off-by-one admin-count thresholds), never class-level javadoc restating the class name.
 
