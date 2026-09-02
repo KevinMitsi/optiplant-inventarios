@@ -32,27 +32,30 @@
 
 ## 1. Estado del proyecto
 
-El **backend está funcionalmente completo**: los 6 módulos obligatorios del enunciado,
-más la funcionalidad adicional, más el cierre de deuda técnica de seguridad. **445 tests,
-445 en verde**, incluyendo el arranque completo del contexto Spring contra PostgreSQL real.
+El **backend está funcionalmente completo**: cubre los módulos obligatorios del enunciado,
+las alertas de inventario, la auditoría centralizada y el catálogo de variantes de la
+versión actual. La suite contiene **484 pruebas, 484 en verde**, entre dominio, casos de
+uso, infraestructura y API; las pruebas de integración levantan PostgreSQL real mediante
+Testcontainers y, por tanto, requieren un motor Docker disponible.
 
-| Bloque | Estado |
-|---|---|
-| Arquitectura hexagonal + esquema físico (26 tablas) | ✅ Completo |
-| Seguridad (JWT, autorización por rol y ámbito) | ✅ Completo |
-| Catálogo (`Category`, `Product`, `UnitOfMeasure`, `ProductUnit`) | ✅ Completo |
-| Inventario y movimientos (núcleo del dominio) | ✅ Completo |
-| Compras (`Supplier`, `PurchaseOrder`) | ✅ Completo |
-| Ventas (`Sale`, `PriceList`, `ProductPrice`) | ✅ Completo |
-| Transferencias entre sucursales (`Transfer`, 5 estados) | ✅ Completo |
-| Logística (`Carrier`, `LogisticsRoute`, cumplimiento por ruta) | ✅ Completo |
-| Dashboard analítico (solo lectura) | ✅ Completo |
-| Funcionalidad adicional: alertas de stock (`InventoryAlert`) | ✅ Completo |
-| Deuda técnica: `MockMvc` con JWT real, bugs de arranque | ✅ Completo |
-| Siembra del administrador inicial (`AdminBootstrapUseCase`) | ✅ Completo |
-| Frontend | ❌ No iniciado (fuera del alcance actual, ver [§13](#13-pendiente)) |
-| Docker Compose (`docker compose up` end-to-end) | ⚠️ Por confirmar/crear |
-| Diagramas de ingeniería (casos de uso, actividades, arquitectura, E-R) | ❌ No generados |
+| Bloque | Estado       |
+|---|--------------|
+| Arquitectura hexagonal + esquema físico evolutivo V1–V5 (26 tablas efectivas) | ✅ Completo |
+| Seguridad (JWT, autorización por rol y ámbito) | ✅ Completo   |
+| Catálogo (`Category`, `Product`, `UnitOfMeasure`) + familias de variantes | ✅ Completo |
+| Inventario y movimientos (núcleo del dominio) | ✅ Completo   |
+| Compras (`Supplier`, `PurchaseOrder`) | ✅ Completo   |
+| Ventas (`Sale`, `PriceList`, `ProductPrice`) | ✅ Completo   |
+| Transferencias entre sucursales (`Transfer`, 5 estados) | ✅ Completo   |
+| Logística (`Carrier`, `LogisticsRoute`, cumplimiento por ruta) | ✅ Completo   |
+| Dashboard analítico (solo lectura) | ✅ Completo   |
+| Funcionalidad adicional: alertas de stock (`InventoryAlert`) | ✅ Completo   |
+| Traza centralizada de auditoría (`ActivityLog`) | ✅ Completo |
+| Deuda técnica: `MockMvc` con JWT real, bugs de arranque | ✅ Completo   |
+| Siembra del administrador inicial (`AdminBootstrapUseCase`) | ✅ Completo   |
+| Frontend integrado como imagen `kevinmitsi/inventories-front` | ✅ Integrado |
+| Docker Compose (PostgreSQL + backend + frontend + gateway) | ✅ Completo |
+| Diagramas de ingeniería (casos de uso, actividades, clases y E-R) | ✅ Generados |
 
 ---
 
@@ -63,12 +66,13 @@ más la funcionalidad adicional, más el cierre de deuda técnica de seguridad. 
 ```text
 io.github.KevinMitsi.inventories
 │
-├── domain/                        ← El centro. No depende de NADA.
+├── domain/                        ← Modelo y comportamiento del negocio
 │   ├── model/                     Modelos de dominio, objetos de valor, enums
-│   ├── usecase/                   Implementación directa de los casos de uso
+│   ├── usecase/                   Implementación de los puertos de aplicación
+│   ├── annotation/                Marcador propio para casos de uso auditables
 │   └── exception/                 Fallos de invariante del propio modelo
 │
-├── application/                   ← Orquestación. Depende solo de domain.
+├── application/                   ← Contratos y fronteras transaccionales
 │   ├── port/in/                   Casos de uso (interfaces) + command/ + query/
 │   ├── port/out/                  Contratos de persistencia y servicios externos
 │   ├── service/                   Wrapper @Transactional que delega en domain.usecase
@@ -78,19 +82,23 @@ io.github.KevinMitsi.inventories
     ├── adapter/
     │   ├── web/                   Controladores REST, DTO, mapeadores, manejo de errores
     │   ├── persistence/           Entidades JPA, repositorios, mapeadores, adaptadores
-    │   └── security/               JWT, filtro de autenticación
+    │   ├── security/              JWT, filtro de autenticación y usuario actual
+    │   └── logging/               Persistencia automática de la traza de actividad
     └── config/                    Cableado de Spring, OpenAPI, seguridad
 ```
 
-**La regla que sostiene todo**: las dependencias apuntan siempre hacia adentro. `domain`
-no importa nada de `application` ni de `infrastructure`; `application` no importa nada de
-`infrastructure`. La inversión se logra con puertos: la aplicación **declara** lo que
-necesita (`BranchRepositoryPort`) y la infraestructura lo **satisface**
-(`BranchPersistenceAdapter`). Verificable mecánicamente:
+**La regla que sostiene el núcleo**: `domain.model`, `domain.exception` y
+`domain.annotation` no dependen de Spring, JPA ni HTTP; `application` tampoco importa
+`infrastructure`. Los contratos de entrada y salida viven en `application.port`, los
+`domain.usecase` los implementan/consumen y la infraestructura satisface los puertos de
+salida (`BranchRepositoryPort` → `BranchPersistenceAdapter`). Los casos de uso sí importan
+deliberadamente esos contratos de aplicación; la independencia estricta corresponde al
+modelo de dominio, no a todo el paquete `domain`.
 
 ```bash
-grep -rn "import io.github.KevinMitsi.inventories.\(application\|infrastructure\)" \
-     src/main/java/io/github/KevinMitsi/inventories/domain/
+grep -rn "import org.springframework\|import jakarta.persistence" \
+     src/main/java/io/github/KevinMitsi/inventories/domain/model \
+     src/main/java/io/github/KevinMitsi/inventories/domain/exception
 grep -rn "import io.github.KevinMitsi.inventories.infrastructure" \
      src/main/java/io/github/KevinMitsi/inventories/application/
 ```
@@ -110,10 +118,11 @@ DTO + comando, por cada agregado):
 
 ### 2.2 Nota sobre `domain.usecase` vs `application.service`
 
-A partir de la Fase 3, los casos de uso se implementan directamente en
+A partir de la Fase 3, los casos de uso se implementan en
 `domain.usecase.*UseCase` (p. ej. `SaleUseCase`, `TransferUseCase`), y
 `application.service.*Service` es un wrapper `@Transactional` que delega 1:1. Ambos
-implementan las mismas interfaces `port.in`. Esto tuvo una consecuencia real de arranque
+implementan las mismas interfaces `port.in`; las reglas y la orquestación viven en el caso
+de uso, mientras el servicio fija la frontera transaccional. Esto tuvo una consecuencia real de arranque
 (ver [§11](#11-deuda-técnica-y-decisiones-conscientes-de-alcance)): sin `@Primary` en el
 `@Service`, Spring encuentra dos candidatos para cada interfaz y falla con
 `NoUniqueBeanDefinitionException` en el primer arranque contra un contexto real. Fix
@@ -128,13 +137,14 @@ en todos los demás:
 Controller          valida formato (Jakarta), sin lógica de negocio
   └─ WebMapper       Request + parámetros de ruta → Command
       └─ UseCase (interfaz)
-          └─ Service/UseCaseImpl   valida reglas de orquestación → transacción
-              ├─ RepositoryPort (interfaz) de otros agregados, para validar referencias
-              ├─ Agregado.create()          invariantes propios del modelo
-              └─ RepositoryPort (interfaz)
-                  └─ PersistenceAdapter
-                      ├─ PersistenceMapper   Dominio ↔ JpaEntity
-                      └─ JpaRepository       Spring Data
+          └─ Service              abre la transacción y delega
+              └─ domain.usecase   valida y orquesta el caso de uso
+                  ├─ RepositoryPort (interfaz) de otros agregados, para validar referencias
+                  ├─ Agregado.create()          invariantes propios del modelo
+                  └─ RepositoryPort (interfaz)
+                      └─ PersistenceAdapter
+                          ├─ PersistenceMapper   Dominio ↔ JpaEntity
+                          └─ JpaRepository       Spring Data
   └─ WebMapper       Dominio → Response
 ```
 
@@ -146,7 +156,7 @@ Controller          valida formato (Jakarta), sin lógica de negocio
 |---|---|
 | **Java 21 + Spring Boot 4.1** | Hilos virtuales (`spring.threads.virtual.enabled`) para I/O de base de datos sin el coste de un modelo reactivo completo; ecosistema maduro para arquitectura hexagonal, seguridad y persistencia. |
 | **PostgreSQL** | Relacional: el dominio tiene invariantes fuertes (stock nunca negativo, coherencia de estados, unicidad por organización) que se apoyan en `CHECK`, índices únicos/parciales y claves foráneas — encaja mejor que un modelo NoSQL sin esquema. |
-| **Flyway** | Un único esquema físico (`V1__baseline_schema.sql`, 26 tablas) versionado y reproducible; `ddl-auto: validate` hace que Hibernate solo compruebe, nunca gobierne el esquema. |
+| **Flyway** | Esquema versionado mediante V1–V5: baseline, datos de referencia, variantes, corrección de ventas y auditoría. `ddl-auto: validate` hace que Hibernate solo compruebe, nunca gobierne el esquema. |
 | **JWT (JJWT) + BCrypt** | Autenticación sin estado (escalable horizontalmente, RNF-08), aislados detrás de puertos de salida (`TokenProviderPort`, `PasswordHasherPort`) para que `application` no dependa de ninguna librería concreta. |
 | **MapStruct** | Mapeo generado en compilación (`unmappedTargetPolicy = ERROR`): un campo sin correspondencia rompe el build, no aparece como `null` en producción. |
 | **Testcontainers** | Pruebas de integración contra PostgreSQL real, no una base en memoria que oculte diferencias de dialecto SQL. |
@@ -155,20 +165,23 @@ Controller          valida formato (Jakarta), sin lógica de negocio
 
 ## 4. Modelo de datos
 
-Esquema físico completo en `V1__baseline_schema.sql` — **una sola migración**, sin
-necesidad de migraciones adicionales durante todo el desarrollo. 26 tablas normalizadas
-a 3FN, agrupadas por dominio:
+El esquema parte de `V1__baseline_schema.sql` y evoluciona hasta V5. V3 retira
+`product_unit`, normaliza las líneas históricas y añade `product.unit_id` y
+`parent_product_id`; V4 elimina la columna errónea `sale.updated_at`; V5 incorpora la
+traza inmutable `activity_log`. El resultado mantiene **26 tablas efectivas**, agrupadas
+por dominio:
 
-| Dominio | Tablas principales |
+| Dominio | Tablas y tipos principales |
 |---|---|
 | Organización | `organization`, `branch` |
 | Seguridad | `app_role`, `app_user` (`user`/`role` son palabras reservadas en PostgreSQL) |
-| Catálogo | `category`, `product`, `unit_of_measure`, `product_unit` |
+| Catálogo | `category`, `product` (unidad propia + autorrelación de variante), `unit_of_measure` |
 | Inventario | `inventory`, `inventory_movement_type` (enum+CHECK), `inventory_movement`, `inventory_adjustment`(+`_item`), `inventory_alert_type`, `inventory_alert` |
 | Proveedores y compras | `supplier`, `purchase_order`(+`_item`), `purchase_order_status` |
 | Ventas | `sale`(+`_item`), `sale_status`, `price_list`, `product_price` |
 | Transferencias | `transfer`(+`_item`), `transfer_status`, `transfer_priority`, `transfer_status_history`, `transfer_issue`(+ tipo y resolución) |
 | Logística | `carrier`, `logistics_route` |
+| Auditoría | `activity_log` |
 
 ### Decisiones de modelado clave
 
@@ -177,17 +190,17 @@ a 3FN, agrupadas por dominio:
   (transiciones ya viven en el código, una tabla añadiría un JOIN y una segunda fuente de
   verdad). `unit_of_measure`, `carrier`, `logistics_route`, `price_list`, `product_price`
   → **tabla real** (el negocio los extiende en ejecución sin desplegar código).
-- **Entre agregados se referencia por identificador (UUID), nunca por `@ManyToOne`**: por
-  ejemplo `BranchJpaEntity.organizationId` es un `UUID` plano. Esto hace que el N+1 entre
-  agregados sea **imposible por construcción** y deja el límite del agregado explícito.
-  `@ManyToOne`/`@EntityGraph` sí se usan *dentro* de un agregado (una venta y sus líneas).
+- **Las relaciones operativas entre agregados suelen usar identificadores UUID planos**:
+  por ejemplo `BranchJpaEntity.organizationId` y `ProductJpaEntity.parentProductId` no son
+  asociaciones navegables. Se reservan asociaciones JPA para relaciones que la lectura
+  necesita resolver juntas, como la unidad de un producto o las líneas de un documento.
 - **`inventory_movement` usa FKs específicas** (`purchase_order_id`, `sale_id`,
   `transfer_id`, `adjustment_id`) en lugar de una pareja polimórfica genérica
   (`reference_type`/`reference_id`), con un `CHECK` que garantiza como mucho una no nula —
   prioriza integridad referencial real sobre flexibilidad.
-- **Índices parciales** donde aportan: unidad base única por producto activo, alerta
-  abierta única por (inventario, tipo), inventario bajo mínimo, código de barras único
-  solo cuando existe.
+- **Índices parciales** donde aportan: variantes por producto principal, alerta abierta
+  única por (inventario, tipo), inventario bajo mínimo y código de barras único solo
+  cuando existe.
 - **Objetos de valor con escala fija**: `Quantity` (6 decimales), `Money` (4 decimales),
   `Percentage` (0–100, 2 decimales). En un sistema cuyo invariante es que el saldo cuadre
   con sus movimientos, el error acumulado de punto flotante sería indetectable y
@@ -261,23 +274,31 @@ UUID de la ruta.
 
 ## 6. Módulos funcionales
 
-### 6.1 Catálogo (`Category`, `Product`, `UnitOfMeasure`, `ProductUnit`)
+### 6.1 Catálogo y variantes (`Category`, `Product`, `UnitOfMeasure`)
 
-`Product` es agregado raíz de sus `ProductUnit` (presentaciones), porque existe un
-invariante que ninguna restricción de columna puede expresar — *siempre hay exactamente
-una unidad base activa*. Cambiar la unidad base exige el factor de conversión de la
-anterior explícito (nunca calculado automáticamente, para no introducir un redondeo
-periódico sistemático).
+Cada producto se cuenta en **una única unidad inmutable**, sin factor de conversión. Una
+presentación comercial diferente se modela como otro `Product`: una variante con SKU,
+código de barras, unidad, inventario, movimientos y precios propios. `parentProductId`
+solo agrupa el catálogo; no comparte stock ni comportamiento operativo.
 
-**Trampa técnica resuelta**: paginar un agregado con colección (`Product` + sus
-`ProductUnit`) es incompatible con `JOIN FETCH` — la unión multiplica filas y Hibernate
-resolvería la página en memoria, agotando el servidor con un catálogo grande. Solución por
-caso de uso:
+- El catálogo tiene un solo nivel: una variante no puede tener variantes. La regla se
+  valida en `Product.createVariant` y mediante el trigger
+  `tr_product_parent_must_be_principal`.
+- Al crear el principal pueden enviarse variantes en el mismo lote; también pueden
+  añadirse después con `POST /products/{id}/variants`.
+- Categoría y unidad son heredables del principal cuando se omiten en la variante.
+- SKU y código de barras se validan tanto contra la base como dentro del propio lote.
+- `ProductFamily` es un resultado de aplicación (`principal` + `variants`), no un agregado.
+- El listado acepta `scope=ALL|PRINCIPALS_ONLY|VARIANTS_ONLY`.
+
+**Lectura eficiente**: la unidad es una asociación `@ManyToOne(fetch = LAZY)`. Las
+búsquedas individuales usan `@EntityGraph`; el listado paginado aprovecha
+`@BatchSize(50)` en `UnitOfMeasureJpaEntity`:
 
 | Consulta | Estrategia | Consultas emitidas |
 |---|---|---|
 | `findById`/`findBySku` (un producto) | `@EntityGraph` | 1 |
-| Listado paginado | `@BatchSize(50)` en la colección | 2 fijas |
+| Listado paginado | `@BatchSize(50)` en la entidad unidad | 2 fijas |
 
 ### 6.2 Inventario y movimientos (núcleo del dominio, RN-04)
 
@@ -288,8 +309,8 @@ caso de uso:
   promedio ponderado solo en `PURCHASE_IN`, gestiona alertas. Compras, ventas,
   transferencias y ajustes son **clientes** de esto — nunca tocan `inventory`
   directamente.
-- Conversión de unidades al postear vía `ProductUnit.conversionFactor`: el stock siempre
-  se guarda en unidad base.
+- Las cantidades se postean directamente en la unidad inmutable del producto; no existe
+  conversión implícita ni saldo compartido entre variantes.
 - `InventoryAdjustment` (documento formal con líneas + aprobación) es distinto de un
   movimiento manual directo (sin cabecera).
 
@@ -371,15 +392,32 @@ estadístico (predicción de demanda) ni un dominio nuevo con campos y reglas ad
 (caducidad). Índice parcial (`ix_inventory_low_stock`) + alerta abierta única por
 (inventario, tipo) para no duplicar avisos.
 
+### 6.9 Auditoría centralizada (`ActivityLog`)
+
+Los casos de uso anotados con `@AuditedUseCase` conservan sus mensajes habituales de
+`java.util.logging`. Al arrancar, `AuditedUseCaseRegistrar` conecta esos loggers con
+`ActivityLogHandler`, que añade usuario, organización, rol, fecha y severidad y persiste
+la entrada mediante una transacción `REQUIRES_NEW`.
+
+- La traza es de **solo inserción y consulta**: no existen puertos para editarla o borrarla.
+- Usuario, correo y rol se guardan como snapshot sin FK, para que el histórico no cambie
+  cuando cambie la cuenta.
+- Un fallo al auditar nunca rompe la operación de negocio, y un guard por hilo evita
+  recursión al registrar.
+- Los eventos sin sesión se atribuyen a `sistema`/`SYSTEM`.
+- Solo `ADMIN` puede consultar `GET /organizations/{id}/activity-logs` y
+  `GET /activity-logs/{id}`; el listado admite filtros por fechas, usuario, caso de uso,
+  operación y nivel.
+
 ---
 
 ## 7. Decisiones técnicas transversales
 
 | Técnica | Dónde se aplica | Por qué ahí |
 |---|---|---|
-| Referencia por identificador | Entre agregados | El N+1 deja de ser posible por construcción |
+| Referencia por identificador | Relaciones operativas entre agregados | Mantiene explícitos los límites y evita navegación accidental |
 | `@EntityGraph` | Asociación a-uno, o a-muchos sin paginar | Una consulta con la unión resuelta |
-| `@BatchSize` | Colección **paginada** | Evita que Hibernate pagine en memoria |
+| `@BatchSize` | Colecciones paginadas y unidades de producto | Resuelve asociaciones LAZY de una página en lotes acotados |
 | Enum + `CHECK` | Catálogos de estado cerrados, con transiciones en código | Evita JOIN y segunda fuente de verdad |
 | Tabla real | Catálogos que el negocio extiende en ejecución | No requiere desplegar código para crecer |
 | `PageQuery`/`PageResult` propios | Todos los puertos de salida | Cambiar de tecnología de persistencia no obliga a tocar contratos; techo de 100 elementos por página (RNF-07) |
@@ -387,6 +425,7 @@ estadístico (predicción de demanda) ni un dominio nuevo con campos y reglas ad
 | MapStruct con `unmappedTargetPolicy = ERROR` | Web mappers | Una propiedad sin mapear rompe el build, no aparece `null` en producción |
 | Mapeadores de persistencia como `@Component` plano (no MapStruct) | Entidad ↔ Dominio | La reconstitución revalida invariantes vía `reconstitute(...)`; un `@Mapper` con solo métodos `default` puede no generar bean Spring |
 | Lista blanca de campos de ordenación | `PageQueryTranslator` | Un nombre de campo llegado de la petición no puede acabar directo en una consulta |
+| `@AuditedUseCase` + `ActivityLogHandler` | Casos de uso con efectos relevantes | Centraliza la traza sin acoplar el dominio a Spring Security ni a JPA |
 
 ### El dominio no conoce HTTP
 
@@ -410,9 +449,10 @@ reescribirlo.
 
 ## 8. Pruebas
 
-**445 tests, 445 en verde**, incluyendo por primera vez `InventoriesApplicationTests.
-contextLoads` pasando de verdad contra PostgreSQL real (no solo "sin fallar por falta de
-Docker").
+La suite actual descubre **484 pruebas, todas en verde**. Incluye
+`InventoriesApplicationTests.contextLoads` y pruebas web/integración contra PostgreSQL
+real con Testcontainers; por ello, ejecutar `test` o `build` requiere Docker activo. Las
+pruebas puras de dominio y de casos de uso no necesitan infraestructura.
 
 | Capa | Qué se prueba | Ejemplo |
 |---|---|---|
@@ -440,13 +480,36 @@ Requisito explícito: "ejercitar la cadena de seguridad completa". Base
 organización/sucursal/usuarios de cada rol y emitir un JWT real vía `TokenProviderPort`.
 Cada test corre en su propia transacción revertida al final.
 
+### Cobertura con JaCoCo
+
+El plugin `jacoco` está integrado en Gradle y `test` finaliza ejecutando
+`jacocoTestReport`. No se impone aún un umbral mínimo: el reporte sirve como línea base
+para localizar áreas sin ejercitar antes de fijar una política de cobertura.
+
+```bash
+./gradlew clean test       # Windows: .\gradlew.bat clean test
+```
+
+- Reporte navegable: `build/reports/jacoco/test/html/index.html`
+- Reporte XML para CI: `build/reports/jacoco/test/jacocoTestReport.xml`
+- Cobertura de la ejecución actual: **61,27 % de líneas** y **41,84 % de ramas**.
+
 ---
 
 ## 9. Cómo ejecutar
 
+Solución completa en contenedores (PostgreSQL, backend, frontend y gateway):
+
 ```bash
-docker compose up -d      # levanta PostgreSQL (y demás dependencias)
-./gradlew bootRun
+docker compose up --build -d
+```
+
+El gateway queda en `http://localhost:4200` y el backend también se publica directamente
+en `http://localhost:8080`. Para desarrollar el backend fuera del contenedor:
+
+```bash
+docker compose up -d postgres
+./gradlew bootRun          # Windows: .\gradlew.bat bootRun
 ```
 
 Al arrancar por primera vez, `AdminBootstrapRunner` (`ApplicationRunner`, ver
@@ -470,13 +533,9 @@ TOKEN="<accessToken de la respuesta>"
 curl -s http://localhost:8080/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
 ```
 
-> ⚠️ **Pendiente de confirmar**: verificar que exista un `docker-compose.yml` que levante
-> **toda** la solución (backend + base de datos, y frontend cuando exista) con un solo
-> comando, tal como exige el enunciado "sin excepción". Hasta ahora el proyecto solo usa
-> Testcontainers para pruebas de integración, no necesariamente un compose de ejecución.
-
 ```bash
-./gradlew build     # compila, corre los 440 tests, genera OpenAPI
+./gradlew test      # Windows: .\gradlew.bat test; requiere Docker para Testcontainers
+./gradlew build
 ```
 
 ---
@@ -499,13 +558,14 @@ recurso documentado erróneamente como abierto.
 | Auth | `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` (públicos los dos primeros) |
 | Usuarios | `/organizations/{id}/users`, `/users/{id}`, `/users/{id}/profile`\|`assignment`\|`password`\|`deactivation`\|`activation` |
 | Sucursales | `/organizations/{id}/branches`, `/branches/{id}` |
-| Catálogo | `/organizations/{id}/categories`\|`products`, `/categories/{id}`, `/products/{id}`, `/products/{id}/units`, `/units-of-measure` |
+| Catálogo | `/organizations/{id}/categories`\|`products`, `/categories/{id}`, `/products/{id}`, `/products/{id}/family`\|`variants`, `/units-of-measure` |
 | Inventario | `/inventory`, `/inventory-adjustments`, `/inventory-alerts` |
 | Compras | `/organizations/{id}/suppliers`, `/branches/{id}/purchase-orders`, `/purchase-orders/{id}` |
 | Ventas | `/organizations/{id}/price-lists`, `/price-lists/{id}`, `/branches/{id}/sales`, `/sales/{id}` |
 | Transferencias | `/branches/{originBranchId}/transfers`, `/transfers/{id}`, `/transfers/{id}/approval`\|`preparation`\|`dispatch`\|`reception`\|`cancellation`\|`logistics-assignment`, `/transfers/{id}/issues` |
 | Logística | `/organizations/{id}/carriers`, `/organizations/{id}/logistics-routes`, `/logistics-routes/compliance` |
 | Dashboard | `/organizations/{id}/dashboard/sales-summary`\|`product-rotation`\|`branch-comparison` (este último solo `ADMIN`) |
+| Auditoría | `/organizations/{id}/activity-logs`, `/activity-logs/{id}` (solo `ADMIN`) |
 
 Ver Swagger para el detalle completo de parámetros, roles requeridos y esquemas de
 respuesta de cada uno.
@@ -518,8 +578,8 @@ respuesta de cada uno.
 
 Ningún test había levantado antes un contexto Spring completo contra Postgres real —
 `contextLoads` llevaba fases enteras fallando "por Docker" sin que nadie confirmara que,
-con Docker disponible, el contexto realmente cargaba. Al forzarlo, aparecieron tres
-problemas reales:
+con Docker disponible, el contexto realmente cargaba. Al forzarlo, aparecieron varios
+problemas reales, incluida la corrección posterior de la tabla de ventas:
 
 1. **`country_code` no pasaba la validación de esquema de Hibernate** — `CHAR(2)` en la
    migración necesita `@JdbcTypeCode(SqlTypes.CHAR)` explícito en Hibernate 6+.
@@ -528,7 +588,9 @@ problemas reales:
    `com.fasterxml.jackson` en vez de `tools.jackson`, y
    `write-dates-as-timestamps` seguía en la ruta de propiedad antigua.
 3. **Ambigüedad de bean sistémica** entre cada `@Service` y su `@Bean` crudo — resuelto con
-   `@Primary` en los 18 servicios (ver [§2.2](#22-nota-sobre-domainusecase-vs-applicationservice)).
+   `@Primary` en los 19 servicios (ver [§2.2](#22-nota-sobre-domainusecase-vs-applicationservice)).
+4. **`sale.updated_at NOT NULL` no tenía correspondencia en el modelo JPA** — V4 elimina
+   la columna; las transiciones de una venta quedan explicadas por su estado y movimientos.
 
 ### Descartado conscientemente
 
@@ -564,7 +626,7 @@ problemas reales:
   primer corte vertical (sucursales).
 - **Generación de tests**: cobertura de dominio, casos de uso e infraestructura para cada
   fase nueva, incluyendo los tests `MockMvc` con JWT real de la fase de deuda técnica.
-- **Revisión de código**: detección de los tres bugs de arranque del §11, nunca
+- **Revisión de código**: detección de los bugs de arranque del §11, nunca
   observados hasta que se forzó un arranque de contexto real contra Postgres.
 - **Consulta de buenas prácticas**: decisiones como el tratamiento de N+1 (referencia por
   identificador / `@EntityGraph` / `@BatchSize` según el caso), o la migración a
@@ -577,19 +639,16 @@ concretos de prompts usados, para dejar la evidencia que pide el punto 9.2 del e
 
 ## 13. Pendiente
 
-Lo que falta para el entregable completo, en orden de bloqueo respecto al enunciado:
+El backend, el compose end-to-end y los diagramas están terminados. Queda trabajo de
+documentación y cobertura no bloqueante:
 
-- [ ] **Docker Compose** end-to-end (`docker compose up` sin configuración manual) —
-  requisito "sin excepción" del enunciado.
-- [ ] **Diagramas de ingeniería**: casos de uso, actividades (transferencia y venta como
-  mínimo), arquitectura, entidad-relación. El modelo E-R y la arquitectura ya están
-  descritos en detalle en texto (`ENTITIES.md`, `PHASE2-ARQUITECTURA-BACKEND.md`);
-  falta convertirlos en diagrama (draw.io/Mermaid/PlantUML).
-- [ ] **Frontend** — no iniciado. El enunciado exige separación de capas con frontend
-  consumiendo la API sin lógica de negocio propia.
-- [ ] **Sección de IA** con evidencia concreta (capturas de prompts, % estimado).
-- [ ] (Opcional, no bloqueante) `MockMvc` para los controladores de fases 1-5 restantes.
-- [ ] (Opcional, no bloqueante) Autoría de Spring REST Docs (`.adoc`).
+- [ ] **Sección de IA** con evidencia concreta (capturas de prompts y % estimado).
+- [ ] Sincronizar las secciones históricas de `ENTITIES.md` y `PHASE4-CATALOGO.md` que aún
+  describen `product_unit`; `PHASE6-CATALOGO-VARIANTES.md` es la referencia vigente.
+- [ ] (Opcional) ampliar `MockMvc` a los controladores de inventario, compras, ventas y
+  transferencias que hoy están cubiertos principalmente por casos de uso.
+- [ ] (Opcional) escribir fuentes Spring REST Docs (`.adoc`); la dependencia y la tarea
+  Asciidoctor ya están configuradas.
 
 ---
 
@@ -604,10 +663,14 @@ cerraba cada fase (se conservan en el repositorio como rastro auditable del proc
 | `ENTITIES.md` | Modelo E-R textual, normalizado a 3FN |
 | `PHASE2-ARQUITECTURA-BACKEND.md` | Arquitectura hexagonal, esquema físico, corte vertical de referencia |
 | `PHASE3-SEGURIDAD.md` | JWT, autorización por rol y ámbito, invariante del último administrador |
-| `PHASE4-CATALOGO.md` | Catálogo de productos, paginación de agregados con colección |
+| `PHASE4-CATALOGO.md` | Diseño histórico del catálogo con `product_unit`; sustituido en esa parte por Fase 6 |
 | `PHASE5-INVENTARIO-VENTAS-TRANSFERENCIAS-V5/V6/V7.md` | Plan maestro de inventario, compras, ventas, transferencias, logística y dashboard, con snapshots versionados por fase cerrada |
 | `PHASE5.3-VENTAS-CIERRE.md` | Cierre de ventas y listas de precio |
 | `PHASE5.4-TRANSFERENCIAS-CIERRE.md` | Cierre de transferencias entre sucursales |
 | `PHASE5.5-LOGISTICA-CIERRE.md` | Cierre de logística y cumplimiento de rutas |
 | `PHASE5.6-DASHBOARD-CIERRE.md` | Cierre de dashboard analítico |
 | `PHASE5.7-DEUDA-TECNICA-CIERRE.md` | Cierre de deuda técnica: bugs de arranque, `MockMvc` con JWT real |
+| `PHASE6-CATALOGO-VARIANTES.md` | Sustitución de presentaciones/factores por productos-variante autónomos y migración V3 |
+
+Los diagramas editables están en `docs/diagrams/` en formatos Mermaid (`.mmd`) y PlantUML
+(`.puml`): casos de uso, actividad de transferencias, clases y entidad-relación.
