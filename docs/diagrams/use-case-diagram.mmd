@@ -1,0 +1,120 @@
+flowchart LR
+  OP(["Operador de Inventario"])
+  GM(["Gerente de Sucursal"])
+  AD(["Administrador General"])
+  GM -.->|hereda| OP
+  AD -.->|hereda| GM
+
+  subgraph EP01["EP-01 Autenticación"]
+    HU01((HU-01 Iniciar sesión))
+    HU02((HU-02 Gestionar usuarios))
+    HU03((HU-03 Asignar usuario a sucursal))
+  end
+  OP --> HU01
+  GM --> HU01
+  AD --> HU01
+  AD --> HU02
+  AD --> HU03
+
+  subgraph EP02["EP-02 Sucursales"]
+    HU04((HU-04 Crear sucursal))
+    HU05((HU-05 Consultar sucursales))
+    HU06((HU-06 Consultar inventario otra sucursal))
+  end
+  AD --> HU04
+  GM --> HU05
+  GM --> HU06
+
+  subgraph EP03["EP-03 Catálogo"]
+    HU07((HU-07 Registrar producto))
+    HU08((HU-08 Actualizar producto))
+    HU09((HU-09 Consultar catálogo))
+    HU10((HU-10 Gestionar unidades medida))
+  end
+  GM --> HU07
+  GM --> HU08
+  OP --> HU09
+  GM --> HU10
+
+  subgraph EP04["EP-04 Inventario"]
+    HU11((HU-11 Consultar inventario mi sucursal))
+    HU12((HU-12 Registrar ingreso))
+    HU13((HU-13 Registrar retiro))
+    HU14((HU-14 Consultar movimientos))
+    HU15((HU-15 Definir stock mínimo))
+    HU16((HU-16 Recibir alerta stock bajo))
+  end
+  OP --> HU11
+  OP --> HU12
+  OP --> HU13
+  OP --> HU14
+  GM --> HU15
+  GM --> HU16
+
+  subgraph EP05["EP-05 Compras"]
+    HU17((HU-17 Crear orden de compra))
+    HU18((HU-18 Condiciones comerciales))
+    HU19((HU-19 Confirmar recepción compra))
+    HU20((HU-20 Histórico de compras))
+    HU21((HU-21 Costo promedio ponderado))
+  end
+  OP --> HU17
+  GM --> HU18
+  OP --> HU19
+  GM --> HU20
+  HU19 -.->|include| HU21
+
+  subgraph EP06["EP-06 Ventas"]
+    HU22((HU-22 Registrar venta))
+    HU23((HU-23 Validar stock))
+    HU24((HU-24 Aplicar descuentos))
+    HU25((HU-25 Listas de precios))
+    HU26((HU-26 Comprobante de venta))
+  end
+  OP --> HU22
+  OP --> HU24
+  GM --> HU25
+  OP --> HU26
+  HU22 -.->|include| HU23
+
+  subgraph EP07["EP-07 Transferencias"]
+    HU27((HU-27 Solicitar transferencia))
+    HU28((HU-28 Validar solicitud))
+    HU29((HU-29 Aprobar/ajustar transferencia))
+    HU30((HU-30 Registrar despacho))
+    HU31((HU-31 Recepción completa))
+    HU32((HU-32 Recepción parcial))
+    HU33((HU-33 Resolver faltantes))
+  end
+  OP --> HU27
+  GM --> HU29
+  OP --> HU30
+  OP --> HU31
+  OP --> HU32
+  GM --> HU33
+  HU27 -.->|include| HU28
+  HU29 -.->|include| HU28
+
+  subgraph EP08["EP-08 Logística"]
+    HU34((HU-34 Registrar información de envío))
+    HU35((HU-35 Transferencias activas))
+    HU36((HU-36 Tiempos logísticos))
+    HU37((HU-37 Desempeño por ruta))
+  end
+  OP --> HU34
+  GM --> HU35
+  GM --> HU36
+  GM --> HU37
+
+  subgraph EP09["EP-09 Dashboard"]
+    HU38((HU-38 Dashboard de ventas))
+    HU39((HU-39 Rotación de inventario))
+    HU40((HU-40 Productos próximos a agotarse))
+    HU41((HU-41 Transferencias activas))
+    HU42((HU-42 Comparar sucursales))
+  end
+  GM --> HU38
+  GM --> HU39
+  GM --> HU40
+  GM --> HU41
+  AD --> HU42

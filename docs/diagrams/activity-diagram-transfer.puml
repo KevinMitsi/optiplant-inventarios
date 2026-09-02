@@ -1,0 +1,46 @@
+@startuml
+|Operador (origen)|
+start
+:Solicitar transferencia (HU-27);
+|Sistema|
+:Validar solicitud (HU-28)\n(RN-07: origen ≠ destino);
+if (¿Solicitud válida?) then (no)
+  |Operador (origen)|
+  :Corregir solicitud;
+  stop
+endif
+|Gerente sucursal origen|
+:Revisar solicitud (HU-29);
+if (¿Aprueba?) then (no)
+  :Rechazar / cancelar transferencia;
+  stop
+else (sí, ajusta cantidades si aplica)
+endif
+:Aprobar transferencia (status = APPROVED);
+|Sistema|
+:Verificar stock disponible (RN-08);
+if (¿Stock suficiente?) then (no)
+  :Bloquear despacho;
+  stop
+endif
+|Operador (origen)|
+:Preparar transferencia (status = IN_PREPARATION);
+:Registrar despacho (HU-30) (status = IN_TRANSIT);
+:Generar movimiento TRANSFER_OUT;
+|Logística|
+:Registrar información de envío (HU-34)\n(transportista, ruta, ETA);
+|Operador (destino)|
+:Confirmar recepción (HU-31 / HU-32);
+if (¿Cantidad recibida = despachada?) then (sí)
+  :status = RECEIVED;
+  :Generar movimiento TRANSFER_IN;
+else (no, faltante/avería, RN-09)
+  :status = PARTIALLY_RECEIVED;
+  :Generar movimiento TRANSFER_IN por cantidad recibida;
+  :Reportar incidencia (HU-33)\n(RN-10: TransferIssue, nunca se ajusta directo);
+  |Gerente sucursal destino|
+  :Resolver incidencia (reenvío / ajuste / reclamo);
+endif
+:status = CLOSED;
+stop
+@enduml

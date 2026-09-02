@@ -1,0 +1,367 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' ===== Organización =====
+class Organization {
+  id: UUID
+  code: String
+  name: String
+  legalName: String
+  taxId: String
+  active: boolean
+}
+class Branch {
+  id: UUID
+  organizationId: UUID
+  code: String
+  name: String
+  city: String
+  active: boolean
+}
+Organization "1" -- "*" Branch : organizationId
+
+' ===== Seguridad =====
+enum RoleCode {
+  ADMIN
+  BRANCH_MANAGER
+  INVENTORY_OPERATOR
+}
+class Role {
+  id: UUID
+  code: RoleCode
+  name: String
+}
+class User {
+  id: UUID
+  organizationId: UUID
+  branchId: UUID
+  roleId: UUID
+  firstName: String
+  lastName: String
+  email: String
+  passwordHash: String
+  active: boolean
+}
+Organization "1" -- "*" User : organizationId
+Branch "0..1" -- "*" User : branchId
+Role "1" -- "*" User : roleId
+
+' ===== Catálogo =====
+class Category {
+  id: UUID
+  organizationId: UUID
+  code: String
+  name: String
+}
+Organization "1" -- "*" Category
+class UnitOfMeasure {
+  id: UUID
+  code: String
+  name: String
+  symbol: String
+}
+class Product {
+  id: UUID
+  organizationId: UUID
+  categoryId: UUID
+  unitId: UUID
+  parentProductId: UUID
+  sku: String
+  barcode: String
+  name: String
+  active: boolean
+}
+Organization "1" -- "*" Product
+Category "0..1" -- "*" Product
+UnitOfMeasure "1" -- "*" Product
+Product "0..1" -- "*" Product : parentProductId (variantes, 1 nivel)
+
+' ===== Value objects (tipos de atributo, sin caja propia por claridad) =====
+class Quantity <<value object>> {
+  value: BigDecimal
+}
+class Money <<value object>> {
+  amount: BigDecimal
+}
+class Percentage <<value object>> {
+  value: BigDecimal
+}
+
+' ===== Inventario =====
+class Inventory {
+  id: UUID
+  branchId: UUID
+  productId: UUID
+  quantity: Quantity
+  minimumStock: Quantity
+  averageCost: Money
+  version: int
+}
+Branch "1" -- "*" Inventory
+Product "1" -- "1" Inventory
+
+class InventoryAdjustment {
+  id: UUID
+  branchId: UUID
+  createdBy: UUID
+  approvedBy: UUID
+  reason: String
+}
+class InventoryAdjustmentItem {
+  id: UUID
+  adjustmentId: UUID
+  productId: UUID
+  quantityDelta: Quantity
+}
+InventoryAdjustment "1" *-- "*" InventoryAdjustmentItem
+Product "1" -- "*" InventoryAdjustmentItem
+Branch "1" -- "*" InventoryAdjustment
+User "1" -- "*" InventoryAdjustment : createdBy / approvedBy
+
+enum InventoryMovementType {
+  PURCHASE_IN
+  SALE_OUT
+  TRANSFER_IN
+  TRANSFER_OUT
+  RETURN_IN
+  LOSS_OUT
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+}
+class InventoryMovement {
+  id: UUID
+  inventoryId: UUID
+  movementType: InventoryMovementType
+  userId: UUID
+  quantity: Quantity
+  unitCost: Money
+  reason: String
+  purchaseOrderId: UUID
+  saleId: UUID
+  transferId: UUID
+  adjustmentId: UUID
+  occurredAt: Instant
+}
+Inventory "1" -- "*" InventoryMovement
+User "1" -- "*" InventoryMovement
+InventoryAdjustment "0..1" -- "*" InventoryMovement
+
+enum InventoryAlertType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  OVERSTOCK
+}
+enum InventoryAlertStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+class InventoryAlert {
+  id: UUID
+  inventoryId: UUID
+  alertType: InventoryAlertType
+  status: InventoryAlertStatus
+  triggeredQuantity: Quantity
+  minimumStock: Quantity
+}
+Inventory "1" -- "*" InventoryAlert
+
+' ===== Compras =====
+class Supplier {
+  id: UUID
+  organizationId: UUID
+  code: String
+  name: String
+}
+Organization "1" -- "*" Supplier
+
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+class PurchaseOrder {
+  id: UUID
+  branchId: UUID
+  supplierId: UUID
+  createdBy: UUID
+  status: PurchaseOrderStatus
+  orderNumber: String
+  orderDate: LocalDate
+  paymentTermDays: int
+}
+Branch "1" -- "*" PurchaseOrder
+Supplier "1" -- "*" PurchaseOrder
+User "1" -- "*" PurchaseOrder : createdBy
+
+class PurchaseOrderItem {
+  id: UUID
+  purchaseOrderId: UUID
+  productId: UUID
+  quantity: Quantity
+  receivedQuantity: Quantity
+  unitPrice: Money
+  discountPercentage: Percentage
+}
+PurchaseOrder "1" *-- "*" PurchaseOrderItem
+Product "1" -- "*" PurchaseOrderItem
+PurchaseOrder "1" -- "*" InventoryMovement : purchaseOrderId
+
+' ===== Precios =====
+class PriceList {
+  id: UUID
+  organizationId: UUID
+  code: String
+  name: String
+  validFrom: LocalDate
+  validUntil: LocalDate
+}
+Organization "1" -- "*" PriceList
+class ProductPrice {
+  id: UUID
+  priceListId: UUID
+  productId: UUID
+  price: Money
+}
+PriceList "1" *-- "*" ProductPrice
+Product "1" -- "*" ProductPrice
+
+' ===== Ventas =====
+enum SaleStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+class Sale {
+  id: UUID
+  branchId: UUID
+  createdBy: UUID
+  priceListId: UUID
+  status: SaleStatus
+  saleNumber: String
+  saleDate: Instant
+}
+Branch "1" -- "*" Sale
+User "1" -- "*" Sale : createdBy
+PriceList "0..1" -- "*" Sale
+
+class SaleItem {
+  id: UUID
+  saleId: UUID
+  productId: UUID
+  quantity: Quantity
+  unitPrice: Money
+  discountPercentage: Percentage
+}
+Sale "1" *-- "*" SaleItem
+Product "1" -- "*" SaleItem
+Sale "1" -- "*" InventoryMovement : saleId
+
+' ===== Logística =====
+class Carrier {
+  id: UUID
+  organizationId: UUID
+  code: String
+  name: String
+}
+Organization "1" -- "*" Carrier
+class LogisticsRoute {
+  id: UUID
+  organizationId: UUID
+  originBranchId: UUID
+  destinationBranchId: UUID
+  estimatedDurationMinutes: int
+  estimatedCost: Money
+  priority: int
+}
+Organization "1" -- "*" LogisticsRoute
+Branch "1" -- "*" LogisticsRoute : origin
+Branch "1" -- "*" LogisticsRoute : destination
+
+' ===== Transferencias =====
+enum TransferStatus {
+  REQUESTED
+  APPROVED
+  IN_PREPARATION
+  IN_TRANSIT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  ISSUE_PENDING
+  CANCELLED
+  CLOSED
+}
+enum TransferPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+class Transfer {
+  id: UUID
+  transferNumber: String
+  originBranchId: UUID
+  destinationBranchId: UUID
+  requestedBy: UUID
+  approvedBy: UUID
+  status: TransferStatus
+  priority: TransferPriority
+  carrierId: UUID
+  routeId: UUID
+  requestedAt: Instant
+  shippedAt: Instant
+  receivedAt: Instant
+}
+Branch "1" -- "*" Transfer : origin
+Branch "1" -- "*" Transfer : destination
+User "1" -- "*" Transfer : requestedBy / approvedBy
+Carrier "0..1" -- "*" Transfer
+LogisticsRoute "0..1" -- "*" Transfer
+Transfer "1" -- "*" InventoryMovement : transferId
+
+class TransferItem {
+  id: UUID
+  transferId: UUID
+  productId: UUID
+  requestedQuantity: Quantity
+  approvedQuantity: Quantity
+  shippedQuantity: Quantity
+  receivedQuantity: Quantity
+}
+Transfer "1" *-- "*" TransferItem
+Product "1" -- "*" TransferItem
+
+class TransferStatusHistory {
+  id: UUID
+  transferId: UUID
+  status: TransferStatus
+  changedBy: UUID
+  changedAt: Instant
+}
+Transfer "1" *-- "*" TransferStatusHistory
+User "1" -- "*" TransferStatusHistory : changedBy
+
+enum TransferIssueType {
+  MISSING
+  DAMAGED
+  WRONG_PRODUCT
+  OTHER
+}
+enum TransferIssueResolution {
+  RESHIPMENT
+  ADJUSTMENT
+  CLAIM
+}
+class TransferIssue {
+  id: UUID
+  transferItemId: UUID
+  issueType: TransferIssueType
+  resolutionType: TransferIssueResolution
+  quantity: Quantity
+  reportedBy: UUID
+  resolvedBy: UUID
+}
+TransferItem "1" -- "*" TransferIssue
+User "1" -- "*" TransferIssue : reportedBy / resolvedBy
+@enduml

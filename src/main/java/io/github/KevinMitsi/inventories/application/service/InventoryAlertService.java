@@ -2,7 +2,7 @@ package io.github.KevinMitsi.inventories.application.service;
 
 import io.github.KevinMitsi.inventories.application.port.in.ManageInventoryAlertUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.query.InventoryAlertSearchCriteria;
-import io.github.KevinMitsi.inventories.domain.model.InventoryAlert;
+import io.github.KevinMitsi.inventories.application.port.in.result.InventoryAlertDetail;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.usecase.InventoryAlertUseCase;
@@ -24,17 +24,17 @@ public class InventoryAlertService implements ManageInventoryAlertUseCase {
     }
 
     @Override
-    public InventoryAlert resolveAlert(UUID alertId) {
+    public InventoryAlertDetail resolveAlert(UUID alertId) {
         return useCase.resolveAlert(alertId);
     }
 
     @Override
-    public InventoryAlert dismissAlert(UUID alertId) {
+    public InventoryAlertDetail dismissAlert(UUID alertId) {
         return useCase.dismissAlert(alertId);
     }
 
     @Override
-    public PageResult<InventoryAlert> searchAlerts(InventoryAlertSearchCriteria criteria, PageQuery pageQuery) {
+    public PageResult<InventoryAlertDetail> searchAlerts(InventoryAlertSearchCriteria criteria, PageQuery pageQuery) {
         return useCase.searchAlerts(criteria, pageQuery);
     }
 }

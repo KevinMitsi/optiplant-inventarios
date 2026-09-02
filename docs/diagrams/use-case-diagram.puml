@@ -1,0 +1,122 @@
+@startuml
+left to right direction
+actor "Operador de Inventario" as OP
+actor "Gerente de Sucursal" as GM
+actor "Administrador General" as AD
+GM --|> OP
+AD --|> GM
+
+rectangle "EP-01 Autenticación y autorización" {
+  usecase "HU-01 Iniciar sesión" as HU01
+  usecase "HU-02 Gestionar usuarios" as HU02
+  usecase "HU-03 Asignar usuario a sucursal" as HU03
+}
+OP --> HU01
+GM --> HU01
+AD --> HU01
+AD --> HU02
+AD --> HU03
+
+rectangle "EP-02 Gestión de sucursales" {
+  usecase "HU-04 Crear sucursal" as HU04
+  usecase "HU-05 Consultar sucursales" as HU05
+  usecase "HU-06 Consultar inventario de otra sucursal" as HU06
+}
+AD --> HU04
+GM --> HU05
+GM --> HU06
+
+rectangle "EP-03 Catálogo de productos" {
+  usecase "HU-07 Registrar producto" as HU07
+  usecase "HU-08 Actualizar producto" as HU08
+  usecase "HU-09 Consultar catálogo" as HU09
+  usecase "HU-10 Gestionar unidades de medida" as HU10
+}
+GM --> HU07
+GM --> HU08
+OP --> HU09
+GM --> HU10
+
+rectangle "EP-04 Inventario" {
+  usecase "HU-11 Consultar inventario de mi sucursal" as HU11
+  usecase "HU-12 Registrar ingreso de inventario" as HU12
+  usecase "HU-13 Registrar retiro de inventario" as HU13
+  usecase "HU-14 Consultar movimientos" as HU14
+  usecase "HU-15 Definir stock mínimo" as HU15
+  usecase "HU-16 Recibir alerta de stock bajo" as HU16
+}
+OP --> HU11
+OP --> HU12
+OP --> HU13
+OP --> HU14
+GM --> HU15
+GM --> HU16
+
+rectangle "EP-05 Compras" {
+  usecase "HU-17 Crear orden de compra" as HU17
+  usecase "HU-18 Registrar condiciones comerciales" as HU18
+  usecase "HU-19 Confirmar recepción de compra" as HU19
+  usecase "HU-20 Consultar histórico de compras" as HU20
+  usecase "HU-21 Calcular costo promedio ponderado" as HU21
+}
+OP --> HU17
+GM --> HU18
+OP --> HU19
+GM --> HU20
+HU19 .> HU21 : <<include>>
+
+rectangle "EP-06 Ventas" {
+  usecase "HU-22 Registrar venta" as HU22
+  usecase "HU-23 Validar stock antes de vender" as HU23
+  usecase "HU-24 Aplicar descuentos" as HU24
+  usecase "HU-25 Utilizar listas de precios" as HU25
+  usecase "HU-26 Consultar comprobante de venta" as HU26
+}
+OP --> HU22
+OP --> HU24
+GM --> HU25
+OP --> HU26
+HU22 .> HU23 : <<include>>
+
+rectangle "EP-07 Transferencias" {
+  usecase "HU-27 Solicitar transferencia" as HU27
+  usecase "HU-28 Validar solicitud" as HU28
+  usecase "HU-29 Aprobar o ajustar transferencia" as HU29
+  usecase "HU-30 Registrar despacho" as HU30
+  usecase "HU-31 Confirmar recepción completa" as HU31
+  usecase "HU-32 Confirmar recepción parcial" as HU32
+  usecase "HU-33 Resolver faltantes" as HU33
+}
+OP --> HU27
+GM --> HU29
+OP --> HU30
+OP --> HU31
+OP --> HU32
+GM --> HU33
+HU27 .> HU28 : <<include>>
+HU29 .> HU28 : <<include>>
+
+rectangle "EP-08 Logística" {
+  usecase "HU-34 Registrar información de envío" as HU34
+  usecase "HU-35 Consultar transferencias activas" as HU35
+  usecase "HU-36 Consultar tiempos logísticos" as HU36
+  usecase "HU-37 Consultar desempeño por ruta" as HU37
+}
+OP --> HU34
+GM --> HU35
+GM --> HU36
+GM --> HU37
+
+rectangle "EP-09 Dashboard y analítica" {
+  usecase "HU-38 Dashboard de ventas" as HU38
+  usecase "HU-39 Analizar rotación del inventario" as HU39
+  usecase "HU-40 Visualizar productos próximos a agotarse" as HU40
+  usecase "HU-41 Visualizar transferencias activas" as HU41
+  usecase "HU-42 Comparar sucursales" as HU42
+}
+GM --> HU38
+GM --> HU39
+GM --> HU40
+GM --> HU41
+AD --> HU42
+@enduml

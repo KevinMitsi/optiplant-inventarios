@@ -1,0 +1,56 @@
+flowchart TD
+  subgraph L1["Operador (origen)"]
+    A2[Solicitar transferencia HU-27]
+  end
+  subgraph L2["Sistema"]
+    B1{Solicitud válida? RN-07}
+  end
+  A2 --> B1
+  B1 -- No --> A3[Corregir solicitud] --> ZFin([Fin])
+  B1 -- Sí --> C1
+
+  subgraph L3["Gerente sucursal origen"]
+    C1[Revisar solicitud HU-29]
+    C2{Aprueba?}
+    C3[Aprobar - status APPROVED]
+  end
+  C1 --> C2
+  C2 -- No --> C4[Rechazar / cancelar] --> ZFin
+  C2 -- "Sí, ajusta cantidades" --> C3
+
+  subgraph L4["Sistema"]
+    D1{Stock suficiente? RN-08}
+  end
+  C3 --> D1
+  D1 -- No --> D2[Bloquear despacho] --> ZFin
+  D1 -- Sí --> E1
+
+  subgraph L5["Operador (origen)"]
+    E1[Preparar - IN_PREPARATION]
+    E2[Registrar despacho HU-30 - IN_TRANSIT]
+    E3[Movimiento TRANSFER_OUT]
+  end
+  E1 --> E2 --> E3
+
+  subgraph L6["Logística"]
+    F1[Registrar envío HU-34: transportista/ruta/ETA]
+  end
+  E3 --> F1
+
+  subgraph L7["Operador (destino)"]
+    G1[Confirmar recepción HU-31/HU-32]
+    G2{Recibido = despachado? RN-09}
+  end
+  F1 --> G1 --> G2
+  G2 -- Sí --> H1[RECEIVED + movimiento TRANSFER_IN] --> Z1[status = CLOSED] --> ZFin
+  G2 -- No --> H2[PARTIALLY_RECEIVED + movimiento TRANSFER_IN parcial]
+
+  subgraph L8["Operador (destino) — incidencia"]
+    H3[Reportar incidencia HU-33 RN-10: TransferIssue]
+  end
+  H2 --> H3
+
+  subgraph L9["Gerente sucursal destino"]
+    H4[Resolver incidencia: reenvío / ajuste / reclamo]
+  end
+  H3 --> H4 --> Z1

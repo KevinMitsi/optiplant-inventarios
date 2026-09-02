@@ -4,9 +4,9 @@ import io.github.KevinMitsi.inventories.application.port.in.command.CreateInvent
 import io.github.KevinMitsi.inventories.application.port.in.command.RegisterInventoryEntryCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.RegisterInventoryExitCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.SetMinimumStockCommand;
+import io.github.KevinMitsi.inventories.application.port.in.result.InventoryAlertDetail;
 import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAdjustment;
-import io.github.KevinMitsi.inventories.domain.model.InventoryAlert;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovement;
 import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
@@ -76,7 +76,18 @@ public interface InventoryWebMapper {
     InventoryAdjustmentDtos.InventoryAdjustmentResponse.ItemResponse toResponse(
             io.github.KevinMitsi.inventories.domain.model.InventoryAdjustmentItem item);
 
-    InventoryAlertDtos.InventoryAlertResponse toResponse(InventoryAlert alert);
+    @Mapping(target = "id", source = "alert.id")
+    @Mapping(target = "inventoryId", source = "alert.inventoryId")
+    @Mapping(target = "branchId", source = "branchId")
+    @Mapping(target = "productId", source = "productId")
+    @Mapping(target = "alertType", source = "alert.alertType")
+    @Mapping(target = "status", source = "alert.status")
+    @Mapping(target = "triggeredQuantity", source = "alert.triggeredQuantity")
+    @Mapping(target = "minimumStock", source = "alert.minimumStock")
+    @Mapping(target = "message", source = "alert.message")
+    @Mapping(target = "createdAt", source = "alert.createdAt")
+    @Mapping(target = "resolvedAt", source = "alert.resolvedAt")
+    InventoryAlertDtos.InventoryAlertResponse toResponse(InventoryAlertDetail detail);
 
     default BigDecimal map(Quantity quantity) {
         return quantity == null ? null : quantity.value();

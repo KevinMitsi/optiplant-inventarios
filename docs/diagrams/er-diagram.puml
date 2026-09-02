@@ -1,0 +1,283 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+entity organization {
+  * id : UUID <<PK>>
+  --
+  code : VARCHAR <<UK>>
+  name : VARCHAR
+  active : BOOLEAN
+}
+entity branch {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  code : VARCHAR
+  active : BOOLEAN
+}
+organization ||--o{ branch
+
+entity app_role {
+  * id : UUID <<PK>>
+  --
+  code : VARCHAR <<UK>>
+}
+entity app_user {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  branch_id : UUID <<FK, nullable>>
+  role_id : UUID <<FK>>
+  email : VARCHAR <<UK>>
+  password_hash : VARCHAR
+}
+organization ||--o{ app_user
+branch |o--o{ app_user
+app_role ||--o{ app_user
+
+entity category {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  code : VARCHAR
+}
+organization ||--o{ category
+
+entity unit_of_measure {
+  * id : UUID <<PK>>
+  --
+  code : VARCHAR <<UK>>
+  symbol : VARCHAR
+}
+
+entity product {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  category_id : UUID <<FK, nullable>>
+  unit_id : UUID <<FK>>
+  parent_product_id : UUID <<FK, nullable, self>>
+  sku : VARCHAR <<UK>>
+  barcode : VARCHAR
+  active : BOOLEAN
+}
+organization ||--o{ product
+category |o--o{ product
+unit_of_measure ||--o{ product
+product |o--o{ product : variante
+
+entity inventory {
+  * id : UUID <<PK>>
+  --
+  branch_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  quantity : DECIMAL
+  minimum_stock : DECIMAL
+  average_cost : DECIMAL
+  version : INT
+}
+branch ||--o{ inventory
+product ||--|| inventory
+
+entity inventory_adjustment {
+  * id : UUID <<PK>>
+  --
+  branch_id : UUID <<FK>>
+  created_by : UUID <<FK>>
+  approved_by : UUID <<FK, nullable>>
+  reason : VARCHAR
+}
+branch ||--o{ inventory_adjustment
+app_user ||--o{ inventory_adjustment
+
+entity inventory_adjustment_item {
+  * id : UUID <<PK>>
+  --
+  adjustment_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  quantity_delta : DECIMAL
+}
+inventory_adjustment ||--o{ inventory_adjustment_item
+product ||--o{ inventory_adjustment_item
+
+entity inventory_movement {
+  * id : UUID <<PK>>
+  --
+  inventory_id : UUID <<FK>>
+  movement_type : VARCHAR
+  user_id : UUID <<FK>>
+  quantity : DECIMAL
+  unit_cost : DECIMAL
+  purchase_order_id : UUID <<FK, nullable>>
+  sale_id : UUID <<FK, nullable>>
+  transfer_id : UUID <<FK, nullable>>
+  adjustment_id : UUID <<FK, nullable>>
+}
+inventory ||--o{ inventory_movement
+app_user ||--o{ inventory_movement
+inventory_adjustment |o--o{ inventory_movement
+
+entity inventory_alert {
+  * id : UUID <<PK>>
+  --
+  inventory_id : UUID <<FK>>
+  alert_type : VARCHAR
+  status : VARCHAR
+  triggered_quantity : DECIMAL
+}
+inventory ||--o{ inventory_alert
+
+entity supplier {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  code : VARCHAR
+}
+organization ||--o{ supplier
+
+entity purchase_order {
+  * id : UUID <<PK>>
+  --
+  branch_id : UUID <<FK>>
+  supplier_id : UUID <<FK>>
+  created_by : UUID <<FK>>
+  status : VARCHAR
+  order_number : VARCHAR
+}
+branch ||--o{ purchase_order
+supplier ||--o{ purchase_order
+app_user ||--o{ purchase_order
+purchase_order ||--o{ inventory_movement
+
+entity purchase_order_item {
+  * id : UUID <<PK>>
+  --
+  purchase_order_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  quantity : DECIMAL
+  received_quantity : DECIMAL
+  unit_price : DECIMAL
+}
+purchase_order ||--o{ purchase_order_item
+product ||--o{ purchase_order_item
+
+entity price_list {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  code : VARCHAR
+  valid_from : DATE
+  valid_until : DATE
+}
+organization ||--o{ price_list
+
+entity product_price {
+  * id : UUID <<PK>>
+  --
+  price_list_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  price : DECIMAL
+}
+price_list ||--o{ product_price
+product ||--o{ product_price
+
+entity sale {
+  * id : UUID <<PK>>
+  --
+  branch_id : UUID <<FK>>
+  created_by : UUID <<FK>>
+  price_list_id : UUID <<FK, nullable>>
+  status : VARCHAR
+  sale_number : VARCHAR
+}
+branch ||--o{ sale
+app_user ||--o{ sale
+price_list |o--o{ sale
+sale ||--o{ inventory_movement
+
+entity sale_item {
+  * id : UUID <<PK>>
+  --
+  sale_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  quantity : DECIMAL
+  unit_price : DECIMAL
+}
+sale ||--o{ sale_item
+product ||--o{ sale_item
+
+entity carrier {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  code : VARCHAR
+}
+organization ||--o{ carrier
+
+entity logistics_route {
+  * id : UUID <<PK>>
+  --
+  organization_id : UUID <<FK>>
+  origin_branch_id : UUID <<FK>>
+  destination_branch_id : UUID <<FK>>
+  estimated_duration_minutes : INT
+}
+organization ||--o{ logistics_route
+branch ||--o{ logistics_route
+
+entity transfer {
+  * id : UUID <<PK>>
+  --
+  transfer_number : VARCHAR <<UK>>
+  origin_branch_id : UUID <<FK>>
+  destination_branch_id : UUID <<FK>>
+  requested_by : UUID <<FK>>
+  approved_by : UUID <<FK, nullable>>
+  status : VARCHAR
+  priority : VARCHAR
+  carrier_id : UUID <<FK, nullable>>
+  route_id : UUID <<FK, nullable>>
+}
+branch ||--o{ transfer
+app_user ||--o{ transfer
+carrier |o--o{ transfer
+logistics_route |o--o{ transfer
+transfer ||--o{ inventory_movement
+
+entity transfer_item {
+  * id : UUID <<PK>>
+  --
+  transfer_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  requested_quantity : DECIMAL
+  approved_quantity : DECIMAL
+  shipped_quantity : DECIMAL
+  received_quantity : DECIMAL
+}
+transfer ||--o{ transfer_item
+product ||--o{ transfer_item
+
+entity transfer_status_history {
+  * id : UUID <<PK>>
+  --
+  transfer_id : UUID <<FK>>
+  status : VARCHAR
+  changed_by : UUID <<FK>>
+}
+transfer ||--o{ transfer_status_history
+app_user ||--o{ transfer_status_history
+
+entity transfer_issue {
+  * id : UUID <<PK>>
+  --
+  transfer_item_id : UUID <<FK>>
+  issue_type : VARCHAR
+  resolution_type : VARCHAR
+  quantity : DECIMAL
+  reported_by : UUID <<FK>>
+  resolved_by : UUID <<FK, nullable>>
+}
+transfer_item ||--o{ transfer_issue
+app_user ||--o{ transfer_issue
+@enduml

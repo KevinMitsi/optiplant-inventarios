@@ -41,6 +41,16 @@ services:
     networks:
       - inventories-net
 
+  front:
+    image: kevinmitsi/inventories-front
+    container_name: inventories-front
+    ports:
+      - '4200:80'
+    depends_on:
+      - app
+    networks:
+      - inventories-net
+
 networks:
   inventories-net:
     driver: bridge

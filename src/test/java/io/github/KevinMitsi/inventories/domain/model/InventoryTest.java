@@ -50,7 +50,7 @@ class InventoryTest {
             Inventory inventory = newInventory();
 
             // Act
-            inventory.receivePurchase(Quantity.of("10"), Money.of("100.00"));
+            inventory.receiveWithCost(Quantity.of("10"), Money.of("100.00"));
 
             // Assert
             assertThat(inventory.getQuantity()).isEqualTo(Quantity.of("10"));
@@ -62,10 +62,10 @@ class InventoryTest {
         void secondPurchasePondersByQuantity() {
             // Arrange: 10 unidades a 100 -> saldo 1000
             Inventory inventory = newInventory();
-            inventory.receivePurchase(Quantity.of("10"), Money.of("100.00"));
+            inventory.receiveWithCost(Quantity.of("10"), Money.of("100.00"));
 
             // Act: 10 unidades más a 200 -> saldo 1000 + 2000 = 3000 / 20 = 150
-            inventory.receivePurchase(Quantity.of("10"), Money.of("200.00"));
+            inventory.receiveWithCost(Quantity.of("10"), Money.of("200.00"));
 
             // Assert
             assertThat(inventory.getQuantity()).isEqualTo(Quantity.of("20"));
@@ -77,7 +77,7 @@ class InventoryTest {
         void exitDoesNotChangeAverageCost() {
             // Arrange
             Inventory inventory = newInventory();
-            inventory.receivePurchase(Quantity.of("10"), Money.of("100.00"));
+            inventory.receiveWithCost(Quantity.of("10"), Money.of("100.00"));
 
             // Act
             inventory.decrease(Quantity.of("4"));

@@ -60,6 +60,7 @@ public class InventoryUseCase implements ManageInventoryUseCase, QueryInventoryU
         inventory.setMinimumStock(Quantity.of(command.minimumStock()));
 
         Inventory saved = inventoryRepository.save(inventory);
+        poster.evaluateAlerts(saved);
         log.info(() -> "Stock mínimo actualizado: sucursal=%s, producto=%s, mínimo=%s"
                 .formatted(saved.getBranchId(), saved.getProductId(), saved.getMinimumStock()));
         return saved;
