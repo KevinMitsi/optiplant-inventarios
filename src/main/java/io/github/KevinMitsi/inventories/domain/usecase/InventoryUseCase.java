@@ -11,6 +11,7 @@ import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPor
 import io.github.KevinMitsi.inventories.application.port.out.InventoryMovementRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovement;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
@@ -22,6 +23,7 @@ import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class InventoryUseCase implements ManageInventoryUseCase, QueryInventoryUseCase {
 
     private static final Logger log = Logger.getLogger(InventoryUseCase.class.getName());

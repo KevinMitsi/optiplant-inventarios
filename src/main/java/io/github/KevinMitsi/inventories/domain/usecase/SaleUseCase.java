@@ -11,6 +11,7 @@ import io.github.KevinMitsi.inventories.application.port.out.PriceListRepository
 import io.github.KevinMitsi.inventories.application.port.out.ProductPriceRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.SaleRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
 import io.github.KevinMitsi.inventories.domain.model.Money;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class SaleUseCase implements ManageSaleUseCase, QuerySaleUseCase {
 
     private static final Logger log = Logger.getLogger(SaleUseCase.class.getName());

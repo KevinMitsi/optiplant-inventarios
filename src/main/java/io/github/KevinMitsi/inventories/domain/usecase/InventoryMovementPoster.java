@@ -3,6 +3,7 @@ package io.github.KevinMitsi.inventories.domain.usecase;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAlertRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryMovementRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.InsufficientStockException;
 import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAlert;
@@ -19,6 +20,7 @@ import java.util.logging.Logger;
  * Único punto que aplica un movimiento de inventario (RN-04): ningún saldo cambia sin una
  * fila en {@code inventory_movement} que lo explique.
  */
+@AuditedUseCase
 public class InventoryMovementPoster {
 
     private static final Logger log = Logger.getLogger(InventoryMovementPoster.class.getName());

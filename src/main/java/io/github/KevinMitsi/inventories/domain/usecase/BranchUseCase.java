@@ -11,6 +11,7 @@ import io.github.KevinMitsi.inventories.application.port.in.command.UpdateBranch
 import io.github.KevinMitsi.inventories.application.port.in.query.BranchSearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Branch;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class BranchUseCase implements CreateBranchUseCase,
                                       UpdateBranchUseCase,
                                       ChangeBranchStatusUseCase,
