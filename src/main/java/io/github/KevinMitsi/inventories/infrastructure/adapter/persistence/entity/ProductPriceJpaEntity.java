@@ -32,9 +32,6 @@ public class ProductPriceJpaEntity {
     @Column(name = "product_id", nullable = false, updatable = false)
     private UUID productId;
 
-    @Column(name = "product_unit_id", nullable = false, updatable = false)
-    private UUID productUnitId;
-
     @Column(name = "price", nullable = false, precision = 18, scale = 4)
     private BigDecimal price;
 

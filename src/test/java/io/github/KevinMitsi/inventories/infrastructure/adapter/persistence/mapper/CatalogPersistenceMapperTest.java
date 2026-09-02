@@ -2,18 +2,15 @@ package io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.mapp
 
 import io.github.KevinMitsi.inventories.domain.model.Category;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entity.CategoryJpaEntity;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entity.ProductJpaEntity;
-import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entity.ProductUnitJpaEntity;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entity.UnitOfMeasureJpaEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -32,13 +29,13 @@ class CatalogPersistenceMapperTest {
 
     private CatalogPersistenceMapper mapper;
     private UnitOfMeasure bottle;
-    private UnitOfMeasure box;
+    private UnitOfMeasure bag;
 
     @BeforeEach
     void setUp() {
         mapper = new CatalogPersistenceMapperImpl();
         bottle = UnitOfMeasure.create("UNIT", "Unidad", "und");
-        box = UnitOfMeasure.create("BOX", "Caja", "caja");
+        bag = UnitOfMeasure.create("PACK", "Paquete", "paq");
     }
 
     @Nested
@@ -83,10 +80,10 @@ class CatalogPersistenceMapperTest {
         @DisplayName("conserva todos los campos en el viaje de ida y vuelta")
         void roundTripPreservesFields() {
             // Act
-            UnitOfMeasure result = mapper.toDomain(mapper.toEntity(box));
+            UnitOfMeasure result = mapper.toDomain(mapper.toEntity(bag));
 
             // Assert
-            assertThat(result).isEqualTo(box);
+            assertThat(result).isEqualTo(bag);
         }
 
         @Test
@@ -98,61 +95,42 @@ class CatalogPersistenceMapperTest {
     }
 
     @Nested
-    @DisplayName("Producto con presentaciones")
+    @DisplayName("Producto")
     class Products {
 
         @Test
-        @DisplayName("conserva el producto y todas sus presentaciones")
-        void roundTripPreservesUnits() {
+        @DisplayName("conserva el producto y su unidad en el viaje de ida y vuelta")
+        void roundTripPreservesFields() {
             // Arrange
-            Product original = Product.create(ORGANIZATION_ID, UUID.randomUUID(), "BEB-AGUA-600",
-                    "7701234567890", "Agua mineral 600 ml", "Botella PET", bottle);
-            original.addUnit(box, new BigDecimal("24"));
+            Product original = Product.create(ORGANIZATION_ID, UUID.randomUUID(), "BEB-BRISA-BOT-1L",
+                    "7701234567890", "Agua Brisa Botella 1 L", "Botella PET", bottle);
 
             // Act
             Product result = mapper.toDomain(mapper.toEntity(original));
 
             // Assert
-            assertThat(result.getSku()).isEqualTo("BEB-AGUA-600");
+            assertThat(result.getSku()).isEqualTo("BEB-BRISA-BOT-1L");
             assertThat(result.getBarcode()).isEqualTo("7701234567890");
-            assertThat(result.getUnits()).hasSize(2);
-            assertThat(result.requireBaseUnit().getUnit().code()).isEqualTo("UNIT");
-            assertThat(result.hasUnit(box.id())).isTrue();
+            assertThat(result.getUnit()).isEqualTo(bottle);
+            assertThat(result.getParentProductId()).isNull();
         }
 
         @Test
-        @DisplayName("conserva el factor de conversión sin perder decimales")
-        void preservesConversionFactorScale() {
+        @DisplayName("conserva el enlace de una variante con su producto principal")
+        void roundTripPreservesParentLink() {
             // Arrange
-            Product original = Product.create(ORGANIZATION_ID, null, "SKU-1", null,
+            Product principal = Product.create(ORGANIZATION_ID, null, "SKU-1", null,
                     "Producto", null, bottle);
-            original.addUnit(box, new BigDecimal("0.041667"));
+            Product variant = principal.createVariant("SKU-1-BOL", null, "Producto bolsa",
+                    null, null, bag);
 
             // Act
-            Product result = mapper.toDomain(mapper.toEntity(original));
+            Product result = mapper.toDomain(mapper.toEntity(variant));
 
             // Assert
-            ProductUnit boxUnit = result.getUnits().stream()
-                    .filter(unit -> unit.getUnitId().equals(box.id()))
-                    .findFirst().orElseThrow();
-            assertThat(boxUnit.getConversionFactor()).isEqualByComparingTo("0.041667");
-        }
-
-        @Test
-        @DisplayName("asocia cada presentación a su producto, que es quien escribe la clave foránea")
-        void wiresUnitsToOwningProduct() {
-            // Arrange
-            Product original = Product.create(ORGANIZATION_ID, null, "SKU-1", null,
-                    "Producto", null, bottle);
-            original.addUnit(box, new BigDecimal("24"));
-
-            // Act
-            ProductJpaEntity entity = mapper.toEntity(original);
-
-            // Assert
-            assertThat(entity.getUnits())
-                    .isNotEmpty()
-                    .allSatisfy(unit -> assertThat(unit.getProduct()).isSameAs(entity));
+            assertThat(result.getParentProductId()).isEqualTo(principal.getId());
+            assertThat(result.isVariant()).isTrue();
+            assertThat(result.getUnit()).isEqualTo(bag);
         }
 
         @Test
@@ -160,7 +138,6 @@ class CatalogPersistenceMapperTest {
         void handlesNullEntities() {
             // Arrange, Act & Assert
             assertThat(mapper.toDomain((ProductJpaEntity) null)).isNull();
-            assertThat(mapper.toUnitDomain((ProductUnitJpaEntity) null)).isNull();
             assertThat(mapper.toEntity((Product) null)).isNull();
         }
     }

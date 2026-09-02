@@ -19,7 +19,10 @@ services:
       retries: 10
 
   app:
-    image: kevinmitsi/inventories:v1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kevinmitsi/inventories:v2
     container_name: inventories-app
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -35,6 +38,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - inventories-net
+
+  front:
+    image: kevinmitsi/inventories-front
+    container_name: inventories-front
+    ports:
+      - '4200:80'
+    depends_on:
+      - app
     networks:
       - inventories-net
 

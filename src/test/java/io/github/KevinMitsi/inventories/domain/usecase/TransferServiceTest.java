@@ -7,13 +7,16 @@ import io.github.KevinMitsi.inventories.application.port.in.command.DispatchTran
 import io.github.KevinMitsi.inventories.application.port.in.command.ReceiveTransferCommand;
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
+import io.github.KevinMitsi.inventories.application.port.out.InventoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
 import io.github.KevinMitsi.inventories.domain.exception.InsufficientStockException;
+import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
+import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.Product;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
 import io.github.KevinMitsi.inventories.domain.model.Transfer;
@@ -75,6 +78,8 @@ class TransferServiceTest {
     @Mock
     private LogisticsRouteRepositoryPort logisticsRouteRepository;
     @Mock
+    private InventoryRepositoryPort inventoryRepository;
+    @Mock
     private InventoryMovementPoster poster;
 
     private TransferUseCase service;
@@ -83,7 +88,8 @@ class TransferServiceTest {
     @BeforeEach
     void setUp() {
         service = new TransferUseCase(transferRepository, transferIssueRepository, statusHistoryRepository,
-                branchRepository, productRepository, carrierRepository, logisticsRouteRepository, poster);
+                branchRepository, productRepository, carrierRepository, logisticsRouteRepository,
+                inventoryRepository, poster);
 
         UnitOfMeasure unit = new UnitOfMeasure(UUID.randomUUID(), "UNIT", "Unidad", "und");
         product = Product.create(UUID.randomUUID(), null, "SKU-1", null, "Producto", null, unit);
@@ -95,7 +101,7 @@ class TransferServiceTest {
     }
 
     private Transfer transferInPreparation() {
-        TransferItem item = TransferItem.create(product.getId(), product.requireBaseUnit().getId(), Quantity.of("10"));
+        TransferItem item = TransferItem.create(product.getId(), Quantity.of("10"));
         Transfer transfer = Transfer.create(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0001", TransferPriority.NORMAL,
                 null, List.of(item));
         transfer.approve(USER_ID, java.util.Map.of());
@@ -110,8 +116,7 @@ class TransferServiceTest {
         @Test
         @DisplayName("crea la transferencia cuando el número no está en uso")
         void createsTransfer() {
-            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(),
-                    product.requireBaseUnit().getId(), new BigDecimal("5"));
+            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(), new BigDecimal("5"));
             CreateTransferCommand command = new CreateTransferCommand(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0002",
                     "HIGH", null, List.of(item));
 
@@ -125,8 +130,7 @@ class TransferServiceTest {
         @DisplayName("rechaza un número de transferencia duplicado")
         void rejectsDuplicateNumber() {
             when(transferRepository.existsByTransferNumber("TR-0002")).thenReturn(true);
-            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(),
-                    product.requireBaseUnit().getId(), new BigDecimal("5"));
+            CreateTransferCommand.Item item = new CreateTransferCommand.Item(product.getId(), new BigDecimal("5"));
             CreateTransferCommand command = new CreateTransferCommand(ORIGIN_ID, DESTINATION_ID, USER_ID, "TR-0002",
                     null, null, List.of(item));
 
@@ -228,12 +232,17 @@ class TransferServiceTest {
     class Reception {
 
         @Test
-        @DisplayName("postea TRANSFER_IN al destino por lo realmente recibido")
+        @DisplayName("postea TRANSFER_IN al destino por lo realmente recibido, con el costo promedio del origen")
         void postsTransferInToDestination() {
             Transfer transfer = transferInPreparation();
             transfer.dispatch(java.util.Map.of());
             when(transferRepository.findById(transfer.getId())).thenReturn(Optional.of(transfer));
             UUID itemId = transfer.getItems().get(0).getId();
+
+            Inventory originInventory = Inventory.reconstitute(UUID.randomUUID(), ORIGIN_ID, product.getId(),
+                    Quantity.of("40"), Quantity.ZERO, Money.of("35.50"), java.time.Instant.now(), 0);
+            when(inventoryRepository.findByBranchIdAndProductId(ORIGIN_ID, product.getId()))
+                    .thenReturn(Optional.of(originInventory));
 
             ArgumentCaptor<PostInventoryMovementCommand> captor =
                     ArgumentCaptor.forClass(PostInventoryMovementCommand.class);
@@ -247,8 +256,32 @@ class TransferServiceTest {
             assertThat(captor.getValue().movementType()).isEqualTo(InventoryMovementType.TRANSFER_IN);
             assertThat(captor.getValue().branchId()).isEqualTo(DESTINATION_ID);
             assertThat(captor.getValue().quantity()).isEqualByComparingTo("10");
+            assertThat(captor.getValue().unitCost()).isEqualByComparingTo("35.50");
             assertThat(result.getStatus()).isEqualTo(TransferStatus.RECEIVED);
             verify(transferIssueRepository, never()).save(any(TransferIssue.class));
+        }
+
+        @Test
+        @DisplayName("si el saldo de origen no tiene costo registrado, la recepción postea costo cero")
+        void postsZeroCostWhenOriginHasNoInventoryRow() {
+            Transfer transfer = transferInPreparation();
+            transfer.dispatch(java.util.Map.of());
+            when(transferRepository.findById(transfer.getId())).thenReturn(Optional.of(transfer));
+            UUID itemId = transfer.getItems().get(0).getId();
+
+            when(inventoryRepository.findByBranchIdAndProductId(ORIGIN_ID, product.getId()))
+                    .thenReturn(Optional.empty());
+
+            ArgumentCaptor<PostInventoryMovementCommand> captor =
+                    ArgumentCaptor.forClass(PostInventoryMovementCommand.class);
+
+            ReceiveTransferCommand command = new ReceiveTransferCommand(transfer.getId(), USER_ID,
+                    List.of(new ReceiveTransferCommand.ItemQuantity(itemId, new BigDecimal("10"))));
+
+            service.receiveTransfer(command);
+
+            verify(poster).post(captor.capture());
+            assertThat(captor.getValue().unitCost()).isEqualByComparingTo(BigDecimal.ZERO);
         }
 
         @Test

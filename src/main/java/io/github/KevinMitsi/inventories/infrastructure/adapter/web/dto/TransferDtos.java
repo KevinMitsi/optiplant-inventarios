@@ -39,17 +39,13 @@ public final class TransferDtos {
             @Schema(description = "Líneas de la transferencia; al menos una.",
                     requiredMode = Schema.RequiredMode.REQUIRED)
             @NotEmpty(message = "La transferencia debe tener al menos una línea.")
-            @Valid
-            List<ItemRequest> items
+            List<@Valid ItemRequest> items
     ) {
         @Schema(name = "TransferItemRequest")
         public record ItemRequest(
 
                 @NotNull(message = "El producto de la línea es obligatorio.")
                 UUID productId,
-
-                @NotNull(message = "La presentación de la línea es obligatoria.")
-                UUID productUnitId,
 
                 @NotNull(message = "La cantidad solicitada es obligatoria.")
                 @Positive(message = "La cantidad debe ser mayor que cero.")
@@ -91,8 +87,7 @@ public final class TransferDtos {
 
             @Schema(description = "Cantidad aprobada por línea. Si una línea no aparece, se "
                     + "aprueba tal como fue solicitada (HU-29).")
-            @Valid
-            List<ItemQuantityRequest> approvedQuantities
+            List<@Valid ItemQuantityRequest> approvedQuantities
     ) {
     }
 
@@ -101,8 +96,7 @@ public final class TransferDtos {
 
             @Schema(description = "Cantidad despachada por línea. Si una línea no aparece, se "
                     + "despacha por la cantidad aprobada.")
-            @Valid
-            List<ItemQuantityRequest> shippedQuantities
+            List<@Valid ItemQuantityRequest> shippedQuantities
     ) {
     }
 
@@ -111,8 +105,7 @@ public final class TransferDtos {
 
             @Schema(description = "Cantidad recibida por línea (RN-09). Si una línea no aparece, "
                     + "se considera que no llegó nada de ella.")
-            @Valid
-            List<ItemQuantityRequest> receivedQuantities
+            List<@Valid ItemQuantityRequest> receivedQuantities
     ) {
     }
 
@@ -125,7 +118,7 @@ public final class TransferDtos {
     ) {
         @Schema(name = "TransferItemResponse")
         public record ItemResponse(
-                UUID id, UUID productId, UUID productUnitId, BigDecimal requestedQuantity,
+                UUID id, UUID productId, BigDecimal requestedQuantity,
                 BigDecimal approvedQuantity, BigDecimal shippedQuantity, BigDecimal receivedQuantity
         ) {
         }

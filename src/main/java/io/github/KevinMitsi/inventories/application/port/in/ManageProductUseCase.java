@@ -1,30 +1,23 @@
 package io.github.KevinMitsi.inventories.application.port.in;
 
-import io.github.KevinMitsi.inventories.application.port.in.command.AddProductUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeBaseUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeProductUnitFactorCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AddProductVariantCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateProductCommand;
+import io.github.KevinMitsi.inventories.application.port.in.result.ProductFamily;
 import io.github.KevinMitsi.inventories.domain.model.Product;
 
 import java.util.UUID;
 
-/** Administracion del catalogo de productos y de sus presentaciones (HU-07, HU-08, HU-10). */
+/** Administracion del catalogo de productos y de sus variantes (HU-07, HU-08, HU-10). */
 public interface ManageProductUseCase {
 
-    Product createProduct(CreateProductCommand command);
+    /** Da de alta el producto principal y, si vienen en el comando, sus variantes. */
+    ProductFamily createProduct(CreateProductCommand command);
 
     Product updateProduct(UpdateProductCommand command);
 
-    Product addUnit(AddProductUnitCommand command);
-
-    Product changeUnitFactor(ChangeProductUnitFactorCommand command);
-
-    Product changeBaseUnit(ChangeBaseUnitCommand command);
-
-    Product deactivateUnit(UUID productId, UUID productUnitId);
-
-    Product activateUnit(UUID productId, UUID productUnitId);
+    /** Cuelga una variante de un producto principal ya existente. */
+    Product addVariant(AddProductVariantCommand command);
 
     Product deactivateProduct(UUID productId);
 

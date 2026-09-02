@@ -91,7 +91,6 @@ public class PurchasingPersistenceMapper {
         return PurchaseOrderItemJpaEntity.builder()
                 .id(item.getId())
                 .productId(item.getProductId())
-                .productUnitId(item.getProductUnitId())
                 .quantity(item.getQuantity().value())
                 .receivedQuantity(item.getReceivedQuantity().value())
                 .unitPrice(item.getUnitPrice().amount())
@@ -103,7 +102,7 @@ public class PurchasingPersistenceMapper {
         if (entity == null) {
             return null;
         }
-        return PurchaseOrderItem.reconstitute(entity.getId(), entity.getProductId(), entity.getProductUnitId(),
+        return PurchaseOrderItem.reconstitute(entity.getId(), entity.getProductId(),
                 Quantity.of(entity.getQuantity()), Quantity.of(entity.getReceivedQuantity()),
                 Money.of(entity.getUnitPrice()), Percentage.of(entity.getDiscountPercentage()));
     }

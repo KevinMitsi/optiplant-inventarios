@@ -10,7 +10,7 @@ public record CreatePurchaseOrderCommand(UUID branchId, UUID supplierId, UUID cr
                                          LocalDate orderDate, int paymentTermDays, String notes,
                                          List<Item> items) {
 
-    public record Item(UUID productId, UUID productUnitId, BigDecimal quantity, BigDecimal unitPrice,
+    public record Item(UUID productId, BigDecimal quantity, BigDecimal unitPrice,
                        BigDecimal discountPercentage) {
     }
 }

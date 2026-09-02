@@ -52,7 +52,7 @@ public interface PurchasingWebMapper {
     }
 
     default CreatePurchaseOrderCommand.Item toItem(PurchaseOrderDtos.CreatePurchaseOrderRequest.ItemRequest item) {
-        return new CreatePurchaseOrderCommand.Item(item.productId(), item.productUnitId(), item.quantity(),
+        return new CreatePurchaseOrderCommand.Item(item.productId(), item.quantity(),
                 item.unitPrice(), item.discountPercentage());
     }
 

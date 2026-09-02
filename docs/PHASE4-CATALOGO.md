@@ -63,6 +63,11 @@ Category ──< Product ──< ProductUnit >── UnitOfMeasure
               (raíz)      (hija)          (catálogo global)
 ```
 
+> **DEC-17 a DEC-20 están derogadas.** `ProductUnit`, la unidad base y el factor de
+> conversión se retiraron en la fase 6: cada producto se cuenta en una sola unidad y las
+> presentaciones son variantes, es decir productos completos con stock y precio propios.
+> Ver `PHASE6-CATALOGO-VARIANTES.md`. Lo que sigue documenta el diseño anterior.
+
 ### DEC-17 — `Product` es agregado raíz de sus presentaciones
 
 `Product` **contiene** su lista de `ProductUnit`, en lugar de tratarlas como entidades
@@ -202,16 +207,23 @@ Varias comprueban **qué no ocurre**, que es lo que se pierde de vista en una re
 | `POST` | `/api/v1/organizations/{id}/categories` | `ADMIN`, `BRANCH_MANAGER` |
 | `GET` | `/api/v1/organizations/{id}/categories` | Autenticado + misma organización |
 | `GET` `PUT` | `/api/v1/categories/{id}` | Consulta: autenticado · Edición: `ADMIN`, `BRANCH_MANAGER` |
-| `POST` | `/api/v1/categories/{id}/deactivation` · `/activation` | `ADMIN`, `BRANCH_MANAGER` |
+| `PATCH` | `/api/v1/categories/{id}/deactivation` · `/activation` | `ADMIN`, `BRANCH_MANAGER` |
 | `POST` | `/api/v1/organizations/{id}/products` | `ADMIN`, `BRANCH_MANAGER` |
 | `GET` | `/api/v1/organizations/{id}/products` | Autenticado + misma organización |
 | `GET` `PUT` | `/api/v1/products/{id}` | Consulta: autenticado · Edición: `ADMIN`, `BRANCH_MANAGER` |
-| `POST` | `/api/v1/products/{id}/units` | `ADMIN`, `BRANCH_MANAGER` |
-| `PUT` | `/api/v1/products/{id}/units/{unitId}/factor` | `ADMIN`, `BRANCH_MANAGER` |
-| `POST` | `/api/v1/products/{id}/base-unit` | `ADMIN`, `BRANCH_MANAGER` |
-| `POST` | `/api/v1/products/{id}/units/{unitId}/deactivation` · `/activation` | `ADMIN`, `BRANCH_MANAGER` |
-| `POST` | `/api/v1/products/{id}/deactivation` · `/activation` | `ADMIN`, `BRANCH_MANAGER` |
+| ~~`POST`~~ | ~~`/api/v1/products/{id}/units`~~ | Eliminado en fase 6 |
+| ~~`PUT`~~ | ~~`/api/v1/products/{id}/units/{unitId}/factor`~~ | Eliminado en fase 6 |
+| ~~`POST`~~ | ~~`/api/v1/products/{id}/base-unit`~~ | Eliminado en fase 6 |
+| ~~`POST`~~ | ~~`/api/v1/products/{id}/units/{unitId}/deactivation` · `/activation`~~ | Eliminado en fase 6 |
+| `PATCH` | `/api/v1/products/{id}/deactivation` · `/activation` | `ADMIN`, `BRANCH_MANAGER` |
 | `GET` | `/api/v1/units-of-measure` · `/{id}` | Autenticado |
+
+> **Rutas vigentes tras la fase 6.** Las cuatro rutas tachadas se retiraron con `ProductUnit`.
+> En su lugar existen `POST /api/v1/products/{id}/variants`, `GET /api/v1/products/{id}/variants`
+> y `GET /api/v1/products/{id}/family`; el alta de producto acepta un `variants` opcional y
+> responde `ProductFamilyResponse`; y la búsqueda del catálogo acepta el parámetro `scope`.
+> Las bajas y altas lógicas se hacen con `PATCH`, no con `POST`. Tabla completa en
+> `PHASE6-CATALOGO-VARIANTES.md` §4.6.
 
 El operador de inventario **consulta** el catálogo pero no lo modifica: dar de alta productos
 es una decisión de catálogo, no una operación diaria.
@@ -224,7 +236,8 @@ es una decisión de catálogo, no una operación diaria.
 
 - [x] Arquitectura hexagonal y esquema físico (Fase 2)
 - [x] Seguridad JWT y autorización por ámbito (Fase 3)
-- [x] Catálogo: `Category`, `Product`, `UnitOfMeasure`, `ProductUnit`
+- [x] Catálogo: `Category`, `Product`, `UnitOfMeasure`, `ProductUnit` (esta última retirada en
+  la fase 6, sustituida por variantes de `Product`)
 - [x] Callbacks de auditoría, estilo de comentarios, patrón AAA, pruebas de infraestructura
 
 ### Deuda de pruebas reconocida

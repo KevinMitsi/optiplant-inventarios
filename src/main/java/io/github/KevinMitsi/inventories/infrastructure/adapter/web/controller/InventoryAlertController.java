@@ -2,7 +2,7 @@ package io.github.KevinMitsi.inventories.infrastructure.adapter.web.controller;
 
 import io.github.KevinMitsi.inventories.application.port.in.ManageInventoryAlertUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.query.InventoryAlertSearchCriteria;
-import io.github.KevinMitsi.inventories.domain.model.InventoryAlert;
+import io.github.KevinMitsi.inventories.application.port.in.result.InventoryAlertDetail;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAlertStatus;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
@@ -80,7 +80,7 @@ public class InventoryAlertController {
 
         InventoryAlertStatus statusFilter = status.isBlank() ? null : InventoryAlertStatus.fromString(status);
 
-        PageResult<InventoryAlert> result = alertUseCase.searchAlerts(
+        PageResult<InventoryAlertDetail> result = alertUseCase.searchAlerts(
                 new InventoryAlertSearchCriteria(branchId, statusFilter), PageQuery.of(page, size));
 
         return PageResponse.from(result, mapper::toResponse);

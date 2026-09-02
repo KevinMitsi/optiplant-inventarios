@@ -9,7 +9,6 @@ import io.github.KevinMitsi.inventories.application.port.out.SupplierRepositoryP
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
 import io.github.KevinMitsi.inventories.domain.model.Percentage;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.PurchaseOrder;
 import io.github.KevinMitsi.inventories.domain.model.PurchaseOrderItem;
 import io.github.KevinMitsi.inventories.domain.model.Quantity;
@@ -63,7 +62,6 @@ class PurchaseOrderServiceTest {
 
     private PurchaseOrderUseCase service;
     private Product product;
-    private ProductUnit boxUnit;
 
     @BeforeEach
     void setUp() {
@@ -71,10 +69,7 @@ class PurchaseOrderServiceTest {
                 productRepository, poster);
 
         UnitOfMeasure unit = new UnitOfMeasure(UUID.randomUUID(), "UNIT", "Unidad", "und");
-        UnitOfMeasure box = new UnitOfMeasure(UUID.randomUUID(), "BOX", "Caja", "caja");
         product = Product.create(UUID.randomUUID(), null, "SKU-1", null, "Producto", null, unit);
-        product.addUnit(box, new BigDecimal("24"));
-        boxUnit = product.getUnits().stream().filter(u -> !u.isBaseUnit()).findFirst().orElseThrow();
 
         when(branchRepository.existsById(BRANCH_ID)).thenReturn(true);
         when(supplierRepository.existsById(SUPPLIER_ID)).thenReturn(true);
@@ -83,15 +78,15 @@ class PurchaseOrderServiceTest {
     }
 
     @Nested
-    @DisplayName("Recepción con conversión de unidad")
-    class ReceivingWithUnitConversion {
+    @DisplayName("Recepción")
+    class Receiving {
 
         @Test
-        @DisplayName("recibir 2 cajas de 24 postea 48 unidades base, con el costo neto por unidad")
-        void convertsToBaseUnitOnReceipt() {
-            // Arrange: orden con una línea de 2 cajas a 240.00 cada una (10.00 por unidad base)
-            PurchaseOrderItem item = PurchaseOrderItem.create(product.getId(), boxUnit.getId(),
-                    Quantity.of("2"), io.github.KevinMitsi.inventories.domain.model.Money.of("240.00"),
+        @DisplayName("lo recibido se postea tal cual, en la unidad del producto y a su precio neto")
+        void postsReceivedQuantityAsIs() {
+            // Arrange: orden con una línea de 48 unidades a 10.00 cada una
+            PurchaseOrderItem item = PurchaseOrderItem.create(product.getId(),
+                    Quantity.of("48"), io.github.KevinMitsi.inventories.domain.model.Money.of("10.00"),
                     Percentage.ZERO);
             PurchaseOrder order = PurchaseOrder.create(BRANCH_ID, SUPPLIER_ID, USER_ID, "OC-0001",
                     LocalDate.now(), 0, null, List.of(item));
@@ -101,9 +96,9 @@ class PurchaseOrderServiceTest {
             ArgumentCaptor<PostInventoryMovementCommand> captor =
                     ArgumentCaptor.forClass(PostInventoryMovementCommand.class);
 
-            // Act: recibe las 2 cajas completas
+            // Act: recibe las 48 unidades completas
             service.receiveItem(new ReceivePurchaseOrderItemCommand(order.getId(), item.getId(),
-                    new BigDecimal("2"), USER_ID));
+                    new BigDecimal("48"), USER_ID));
 
             // Assert
             verify(poster).post(captor.capture());
@@ -117,8 +112,8 @@ class PurchaseOrderServiceTest {
         @Test
         @DisplayName("recepción parcial: solo se postea la cantidad efectivamente recibida")
         void partialReceiptPostsOnlyReceivedQuantity() {
-            // Arrange: línea de 10 unidades base a 50.00
-            PurchaseOrderItem item = PurchaseOrderItem.create(product.getId(), product.requireBaseUnit().getId(),
+            // Arrange: línea de 10 unidades a 50.00
+            PurchaseOrderItem item = PurchaseOrderItem.create(product.getId(),
                     Quantity.of("10"), io.github.KevinMitsi.inventories.domain.model.Money.of("50.00"),
                     Percentage.ZERO);
             PurchaseOrder order = PurchaseOrder.create(BRANCH_ID, SUPPLIER_ID, USER_ID, "OC-0002",

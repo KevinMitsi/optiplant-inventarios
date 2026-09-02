@@ -70,9 +70,9 @@ public class InventoryMovementPoster {
             return null;
         }
 
-        if (type == InventoryMovementType.PURCHASE_IN) {
+        if (type == InventoryMovementType.PURCHASE_IN || type == InventoryMovementType.TRANSFER_IN) {
             Money unitCost = Money.of(command.unitCost());
-            inventory.receivePurchase(quantity, unitCost);
+            inventory.receiveWithCost(quantity, unitCost);
             return unitCost;
         }
 
@@ -87,7 +87,16 @@ public class InventoryMovementPoster {
         }
     }
 
-    private void evaluateAlerts(Inventory inventory) {
+    /**
+     * Compara el saldo contra su mínimo configurado y abre, cambia o resuelve la alerta
+     * abierta según corresponda.
+     *
+     * <p>La llama {@link #post} tras cada movimiento, pero también queda disponible para
+     * quien cambie el mínimo configurado sin mover stock ({@code InventoryUseCase.
+     * setMinimumStock}): sin este método público, bajar el mínimo por debajo del saldo actual
+     * no abriría alerta hasta el siguiente movimiento.
+     */
+    public void evaluateAlerts(Inventory inventory) {
         InventoryAlertType targetType;
         if (inventory.isOutOfStock()) {
             targetType = InventoryAlertType.OUT_OF_STOCK;

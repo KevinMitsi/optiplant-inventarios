@@ -4,12 +4,11 @@ import io.github.KevinMitsi.inventories.application.exception.DuplicateResourceE
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.ManageProductUseCase;
 import io.github.KevinMitsi.inventories.application.port.in.QueryProductUseCase;
-import io.github.KevinMitsi.inventories.application.port.in.command.AddProductUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeBaseUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeProductUnitFactorCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AddProductVariantCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.query.ProductSearchCriteria;
+import io.github.KevinMitsi.inventories.application.port.in.result.ProductFamily;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
@@ -21,8 +20,12 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Product;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -34,6 +37,8 @@ public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase
     private static final String CATEGORY = "la categoría";
     private static final String UNIT = "la unidad de medida";
     private static final String ORGANIZATION = "la organización";
+    private static final String SKU_LABEL = "SKU";
+    private static final String BARCODE_LABEL = "código de barras";
 
     private final ProductRepositoryPort productRepository;
     private final CategoryRepositoryPort categoryRepository;
@@ -51,37 +56,58 @@ public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase
     }
 
     @Override
-    public Product createProduct(CreateProductCommand command) {
+    public ProductFamily createProduct(CreateProductCommand command) {
         if (!organizationRepository.existsById(command.organizationId())) {
             throw new ResourceNotFoundException(ORGANIZATION, command.organizationId());
         }
 
-        String normalizedSku = normalizeSku(command.sku());
-        if (productRepository.existsByOrganizationIdAndSku(command.organizationId(), normalizedSku)) {
-            throw new DuplicateResourceException(PRODUCT, "SKU", normalizedSku);
+        UUID organizationId = command.organizationId();
+        String sku = requireFreeSku(organizationId, command.sku(), Set.of());
+        String barcode = requireFreeBarcode(organizationId, command.barcode(), Set.of());
+
+        validateCategory(command.categoryId(), organizationId);
+        UnitOfMeasure unit = loadUnit(command.unitOfMeasureId());
+
+        Product principal = Product.create(organizationId, command.categoryId(), sku, barcode,
+                command.name(), command.description(), unit);
+
+        // Los SKU y códigos de barras del propio lote todavía no están en la base, así que la
+        // consulta de unicidad no los ve: se acumulan aquí para detectar el choque entre dos
+        // variantes de la misma petición.
+        Set<String> pendingSkus = new HashSet<>(Set.of(sku));
+        Set<String> pendingBarcodes = new HashSet<>();
+        if (barcode != null) {
+            pendingBarcodes.add(barcode);
         }
 
-        String barcode = normalizeBarcode(command.barcode());
-        if (barcode != null
-                && productRepository.existsByOrganizationIdAndBarcode(command.organizationId(), barcode)) {
-            throw new DuplicateResourceException(PRODUCT, "código de barras", barcode);
+        List<Product> variants = new ArrayList<>();
+        for (CreateProductCommand.Variant variant : command.variants()) {
+            variants.add(buildVariant(principal, variant.sku(), variant.barcode(), variant.name(),
+                    variant.description(), variant.categoryId(), variant.unitOfMeasureId(),
+                    pendingSkus, pendingBarcodes));
         }
 
-        validateCategory(command.categoryId(), command.organizationId());
-        UnitOfMeasure baseUnit = loadUnit(command.baseUnitId());
+        Product savedPrincipal = productRepository.save(principal);
+        List<Product> savedVariants = variants.stream().map(productRepository::save).toList();
 
-        Product product = Product.create(
-                command.organizationId(),
-                command.categoryId(),
-                normalizedSku,
-                barcode,
-                command.name(),
-                command.description(),
-                baseUnit);
+        log.info(() -> "Producto creado: id=%s, sku=%s, unidad=%s, variantes=%d"
+                .formatted(savedPrincipal.getId(), savedPrincipal.getSku(),
+                        savedPrincipal.getUnit().code(), savedVariants.size()));
 
-        Product saved = productRepository.save(product);
-        log.info(() -> "Producto creado: id=%s, sku=%s, unidadBase=%s"
-                .formatted(saved.getId(), saved.getSku(), baseUnit.code()));
+        return new ProductFamily(savedPrincipal, savedVariants);
+    }
+
+    @Override
+    public Product addVariant(AddProductVariantCommand command) {
+        Product parent = loadProduct(command.parentProductId());
+
+        Product variant = buildVariant(parent, command.sku(), command.barcode(), command.name(),
+                command.description(), command.categoryId(), command.unitOfMeasureId(),
+                new HashSet<>(), new HashSet<>());
+
+        Product saved = productRepository.save(variant);
+        log.info(() -> "Variante creada: id=%s, sku=%s, principal=%s"
+                .formatted(saved.getId(), saved.getSku(), parent.getSku()));
         return saved;
     }
 
@@ -93,61 +119,12 @@ public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase
         boolean barcodeChanged = barcode != null && !barcode.equals(product.getBarcode());
         if (barcodeChanged
                 && productRepository.existsByOrganizationIdAndBarcode(product.getOrganizationId(), barcode)) {
-            throw new DuplicateResourceException(PRODUCT, "código de barras", barcode);
+            throw new DuplicateResourceException(PRODUCT, BARCODE_LABEL, barcode);
         }
 
         validateCategory(command.categoryId(), product.getOrganizationId());
 
         product.updateDetails(command.categoryId(), barcode, command.name(), command.description());
-        return productRepository.save(product);
-    }
-
-    @Override
-    public Product addUnit(AddProductUnitCommand command) {
-        Product product = loadProduct(command.productId());
-        UnitOfMeasure unit = loadUnit(command.unitOfMeasureId());
-
-        product.addUnit(unit, command.conversionFactor());
-
-        Product saved = productRepository.save(product);
-        log.info(() -> "Presentación añadida al producto %s: unidad=%s, factor=%s"
-                .formatted(saved.getSku(), unit.code(), command.conversionFactor()));
-        return saved;
-    }
-
-    @Override
-    public Product changeUnitFactor(ChangeProductUnitFactorCommand command) {
-        Product product = loadProduct(command.productId());
-        product.changeUnitFactor(command.productUnitId(), command.conversionFactor());
-        return productRepository.save(product);
-    }
-
-    @Override
-    public Product changeBaseUnit(ChangeBaseUnitCommand command) {
-        Product product = loadProduct(command.productId());
-        product.changeBaseUnit(command.newBaseProductUnitId(), command.previousBaseNewFactor());
-
-        // Degrada la base anterior en su propia sentencia antes del merge del agregado: el
-        // orden de flush de Hibernate entre hijos del mismo tipo no está garantizado y podría
-        // promover la nueva base antes de degradar la anterior, violando
-        // ux_product_unit_single_base.
-        productRepository.clearBaseUnit(command.productId());
-        Product saved = productRepository.save(product);
-        log.info(() -> "Unidad base cambiada en el producto %s".formatted(saved.getSku()));
-        return saved;
-    }
-
-    @Override
-    public Product deactivateUnit(UUID productId, UUID productUnitId) {
-        Product product = loadProduct(productId);
-        product.deactivateUnit(productUnitId);
-        return productRepository.save(product);
-    }
-
-    @Override
-    public Product activateUnit(UUID productId, UUID productUnitId) {
-        Product product = loadProduct(productId);
-        product.activateUnit(productUnitId);
         return productRepository.save(product);
     }
 
@@ -174,15 +151,76 @@ public class ProductUseCase implements ManageProductUseCase, QueryProductUseCase
     }
 
     @Override
+    public ProductFamily getProductFamily(UUID productId) {
+        Product product = loadProduct(productId);
+        if (product.isVariant()) {
+            return ProductFamily.of(product);
+        }
+        return new ProductFamily(product, productRepository.findVariants(productId));
+    }
+
+    @Override
     public Product getProductBySku(UUID organizationId, String sku) {
         String normalizedSku = normalizeSku(sku);
         return productRepository.findByOrganizationIdAndSku(organizationId, normalizedSku)
-                .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, "SKU", normalizedSku));
+                .orElseThrow(() -> new ResourceNotFoundException(PRODUCT, SKU_LABEL, normalizedSku));
+    }
+
+    @Override
+    public List<Product> listVariants(UUID parentProductId) {
+        return productRepository.findVariants(loadProduct(parentProductId).getId());
     }
 
     @Override
     public PageResult<Product> searchProducts(ProductSearchCriteria criteria, PageQuery pageQuery) {
         return productRepository.search(criteria, pageQuery);
+    }
+
+    private Product buildVariant(Product parent,
+                                 String sku,
+                                 String barcode,
+                                 String name,
+                                 String description,
+                                 UUID categoryId,
+                                 UUID unitOfMeasureId,
+                                 Set<String> pendingSkus,
+                                 Set<String> pendingBarcodes) {
+        UUID organizationId = parent.getOrganizationId();
+
+        String normalizedSku = requireFreeSku(organizationId, sku, pendingSkus);
+        String normalizedBarcode = requireFreeBarcode(organizationId, barcode, pendingBarcodes);
+
+        validateCategory(categoryId, organizationId);
+        UnitOfMeasure unit = unitOfMeasureId == null ? null : loadUnit(unitOfMeasureId);
+
+        Product variant = parent.createVariant(normalizedSku, normalizedBarcode, name, description,
+                categoryId, unit);
+
+        pendingSkus.add(normalizedSku);
+        if (normalizedBarcode != null) {
+            pendingBarcodes.add(normalizedBarcode);
+        }
+        return variant;
+    }
+
+    private String requireFreeSku(UUID organizationId, String sku, Set<String> pendingSkus) {
+        String normalized = normalizeSku(sku);
+        if (normalized != null
+                && (pendingSkus.contains(normalized)
+                    || productRepository.existsByOrganizationIdAndSku(organizationId, normalized))) {
+            throw new DuplicateResourceException(PRODUCT, SKU_LABEL, normalized);
+        }
+        return normalized;
+    }
+
+    private String requireFreeBarcode(UUID organizationId, String barcode, Set<String> pendingBarcodes) {
+        String normalized = normalizeBarcode(barcode);
+        if (normalized != null
+                && (pendingBarcodes.contains(normalized)
+                    || productRepository.existsByOrganizationIdAndBarcode(organizationId, normalized))) {
+            throw new DuplicateResourceException(PRODUCT, BARCODE_LABEL, normalized);
+        }
+        return normalized;
     }
 
     private void validateCategory(UUID categoryId, UUID organizationId) {

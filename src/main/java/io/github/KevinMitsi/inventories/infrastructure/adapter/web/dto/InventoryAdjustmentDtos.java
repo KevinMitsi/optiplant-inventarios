@@ -29,8 +29,7 @@ public final class InventoryAdjustmentDtos {
 
             @Schema(description = "Líneas del ajuste; al menos una.", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotEmpty(message = "El ajuste debe tener al menos una línea.")
-            @Valid
-            List<ItemRequest> items
+            List<@Valid ItemRequest> items
     ) {
         @Schema(name = "InventoryAdjustmentItemRequest")
         public record ItemRequest(

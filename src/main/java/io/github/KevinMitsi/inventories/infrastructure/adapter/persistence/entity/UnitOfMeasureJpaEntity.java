@@ -9,12 +9,19 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.UUID;
 
-/** Catálogo global de unidades. No lleva marcas de auditoría: la tabla no las define. */
+/**
+ * Catálogo global de unidades. No lleva marcas de auditoría: la tabla no las define.
+ *
+ * <p>{@code @BatchSize} a nivel de clase: al listar una página de productos, sus unidades
+ * perezosas se resuelven con un único {@code IN} en lugar de una consulta por producto.
+ */
 @Entity
 @Table(name = "unit_of_measure")
+@BatchSize(size = 50)
 @Getter
 @Setter
 @Builder

@@ -65,7 +65,7 @@ public final class Inventory {
         return new Inventory(id, branchId, productId, quantity, minimumStock, averageCost, updatedAt, version);
     }
 
-    /** Aplica una entrada que no altera el costo: transferencias, devoluciones, ajustes. */
+    /** Aplica una entrada que no altera el costo: devoluciones, ajustes. */
     public void increase(Quantity delta) {
         this.quantity = quantity.add(delta);
         touch();
@@ -85,17 +85,19 @@ public final class Inventory {
     }
 
     /**
-     * Aplica una entrada por compra y recalcula el costo promedio ponderado (RF-23, HU-21).
+     * Aplica una entrada que trae costo unitario propio y recalcula el costo promedio
+     * ponderado (RF-23, HU-21): compras (PURCHASE_IN) y recepciones de transferencia
+     * (TRANSFER_IN, que heredan el costo del saldo de origen) son las únicas que lo hacen.
      *
      * <pre>
      * nuevoCosto = (saldoActual * costoActual + cantidadRecibida * costoRecibido)
      *              / (saldoActual + cantidadRecibida)
      * </pre>
      *
-     * <p>Si el saldo previo era cero, el nuevo costo es directamente el de la compra: no hay
+     * <p>Si el saldo previo era cero, el nuevo costo es directamente el recibido: no hay
      * saldo anterior con el que ponderar.
      */
-    public void receivePurchase(Quantity receivedQuantity, Money unitCost) {
+    public void receiveWithCost(Quantity receivedQuantity, Money unitCost) {
         if (!quantity.isZero()) {
             Money currentValue = averageCost.multiply(quantity);
             Money incomingValue = unitCost.multiply(receivedQuantity);

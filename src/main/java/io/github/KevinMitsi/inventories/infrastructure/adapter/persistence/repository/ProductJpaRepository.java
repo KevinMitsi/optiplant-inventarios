@@ -4,30 +4,33 @@ import io.github.KevinMitsi.inventories.infrastructure.adapter.persistence.entit
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Repositorio de productos.
  *
- * <p>Las búsquedas de un único producto usan {@code @EntityGraph} para traer el agregado
- * completo en una consulta. Los listados paginados no lo hacen: unir una colección y paginar
- * a la vez obliga a Hibernate a recortar en memoria. Allí actúa el {@code @BatchSize}
- * declarado en la entidad.
+ * <p>Las búsquedas de un único producto usan {@code @EntityGraph} para traer también su unidad
+ * en una sola consulta. Los listados paginados no lo declaran: allí actúa el
+ * {@code @BatchSize} de la entidad, que resuelve las unidades de la página con un solo
+ * {@code IN}.
  */
 public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, UUID>,
                                               JpaSpecificationExecutor<ProductJpaEntity> {
 
     @Override
-    @EntityGraph(attributePaths = {"units", "units.unit"})
+    @EntityGraph(attributePaths = "unit")
     Optional<ProductJpaEntity> findById(UUID id);
 
-    @EntityGraph(attributePaths = {"units", "units.unit"})
+    @EntityGraph(attributePaths = "unit")
     Optional<ProductJpaEntity> findByOrganizationIdAndSku(UUID organizationId, String sku);
+
+    @EntityGraph(attributePaths = "unit")
+    List<ProductJpaEntity> findByParentProductIdOrderByNameAsc(UUID parentProductId);
 
     boolean existsByOrganizationIdAndSku(UUID organizationId, String sku);
 
@@ -40,15 +43,4 @@ public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, UU
                AND p.active = true
             """)
     long countActiveByCategoryId(@Param("categoryId") UUID categoryId);
-
-    /**
-     * Quita la marca de base a las presentaciones del producto, en su propia sentencia SQL.
-     *
-     * <p>Se ejecuta antes del merge del agregado para evitar que Hibernate, cuyo orden de
-     * flush entre entidades hijas del mismo tipo no está garantizado, intente promocionar la
-     * nueva base antes de degradar la anterior y viole {@code ux_product_unit_single_base}.
-     */
-    @Modifying
-    @Query("UPDATE ProductUnitJpaEntity pu SET pu.baseUnit = false WHERE pu.product.id = :productId AND pu.baseUnit = true")
-    void clearBaseUnit(@Param("productId") UUID productId);
 }

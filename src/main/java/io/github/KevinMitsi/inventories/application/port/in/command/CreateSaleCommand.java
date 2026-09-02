@@ -15,7 +15,7 @@ public record CreateSaleCommand(UUID branchId, UUID createdBy, UUID priceListId,
                                 Instant saleDate, String notes, List<Item> items) {
 
     /** @param unitPrice si es nulo, se toma de la lista de precios de la venta */
-    public record Item(UUID productId, UUID productUnitId, BigDecimal quantity, BigDecimal unitPrice,
+    public record Item(UUID productId, BigDecimal quantity, BigDecimal unitPrice,
                        BigDecimal discountPercentage) {
     }
 }

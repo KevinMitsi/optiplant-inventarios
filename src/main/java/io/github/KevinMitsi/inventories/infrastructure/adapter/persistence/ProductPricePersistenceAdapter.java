@@ -23,9 +23,8 @@ public class ProductPricePersistenceAdapter implements ProductPriceRepositoryPor
     }
 
     @Override
-    public Optional<ProductPrice> findByPriceListIdAndProductIdAndProductUnitId(UUID priceListId, UUID productId,
-                                                                                 UUID productUnitId) {
-        return repository.findByPriceListIdAndProductIdAndProductUnitId(priceListId, productId, productUnitId)
+    public Optional<ProductPrice> findByPriceListIdAndProductId(UUID priceListId, UUID productId) {
+        return repository.findByPriceListIdAndProductId(priceListId, productId)
                 .map(mapper::toDomain);
     }
 }

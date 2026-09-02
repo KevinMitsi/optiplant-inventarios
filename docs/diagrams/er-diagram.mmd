@@ -1,0 +1,249 @@
+erDiagram
+  ORGANIZATION ||--o{ BRANCH : has
+  ORGANIZATION ||--o{ APP_USER : has
+  ORGANIZATION ||--o{ CATEGORY : has
+  ORGANIZATION ||--o{ PRODUCT : has
+  ORGANIZATION ||--o{ SUPPLIER : has
+  ORGANIZATION ||--o{ PRICE_LIST : has
+  ORGANIZATION ||--o{ CARRIER : has
+  ORGANIZATION ||--o{ LOGISTICS_ROUTE : has
+
+  BRANCH ||--o{ APP_USER : employs
+  BRANCH ||--o{ INVENTORY : stocks
+  BRANCH ||--o{ INVENTORY_ADJUSTMENT : requests
+  BRANCH ||--o{ PURCHASE_ORDER : places
+  BRANCH ||--o{ SALE : records
+  BRANCH ||--o{ TRANSFER : "origin"
+  BRANCH ||--o{ TRANSFER : "destination"
+  BRANCH ||--o{ LOGISTICS_ROUTE : "origin"
+  BRANCH ||--o{ LOGISTICS_ROUTE : "destination"
+
+  APP_ROLE ||--o{ APP_USER : classifies
+
+  CATEGORY ||--o{ PRODUCT : classifies
+  UNIT_OF_MEASURE ||--o{ PRODUCT : measures
+  PRODUCT ||--o{ PRODUCT : "variant (parent_product_id)"
+  PRODUCT ||--|| INVENTORY : "tracked in"
+  PRODUCT ||--o{ INVENTORY_ADJUSTMENT_ITEM : adjusts
+  PRODUCT ||--o{ PURCHASE_ORDER_ITEM : ordered
+  PRODUCT ||--o{ SALE_ITEM : sold
+  PRODUCT ||--o{ TRANSFER_ITEM : transferred
+  PRODUCT ||--o{ PRODUCT_PRICE : priced
+
+  INVENTORY ||--o{ INVENTORY_MOVEMENT : logs
+  INVENTORY ||--o{ INVENTORY_ALERT : triggers
+
+  INVENTORY_ADJUSTMENT ||--o{ INVENTORY_ADJUSTMENT_ITEM : contains
+  INVENTORY_ADJUSTMENT ||--o{ INVENTORY_MOVEMENT : originates
+
+  APP_USER ||--o{ INVENTORY_ADJUSTMENT : "creates/approves"
+  APP_USER ||--o{ INVENTORY_MOVEMENT : records
+  APP_USER ||--o{ PURCHASE_ORDER : creates
+  APP_USER ||--o{ SALE : creates
+  APP_USER ||--o{ TRANSFER : "requests/approves"
+  APP_USER ||--o{ TRANSFER_STATUS_HISTORY : changes
+  APP_USER ||--o{ TRANSFER_ISSUE : "reports/resolves"
+
+  SUPPLIER ||--o{ PURCHASE_ORDER : supplies
+  PURCHASE_ORDER ||--o{ PURCHASE_ORDER_ITEM : contains
+  PURCHASE_ORDER ||--o{ INVENTORY_MOVEMENT : originates
+
+  PRICE_LIST ||--o{ PRODUCT_PRICE : contains
+  PRICE_LIST ||--o{ SALE : "applies to"
+
+  SALE ||--o{ SALE_ITEM : contains
+  SALE ||--o{ INVENTORY_MOVEMENT : originates
+
+  CARRIER ||--o{ TRANSFER : ships
+  LOGISTICS_ROUTE ||--o{ TRANSFER : routes
+
+  TRANSFER ||--o{ TRANSFER_ITEM : contains
+  TRANSFER ||--o{ TRANSFER_STATUS_HISTORY : logs
+  TRANSFER ||--o{ INVENTORY_MOVEMENT : originates
+  TRANSFER_ITEM ||--o{ TRANSFER_ISSUE : reports
+
+  ORGANIZATION {
+    uuid id PK
+    varchar code UK
+    varchar name
+    boolean active
+  }
+  BRANCH {
+    uuid id PK
+    uuid organization_id FK
+    varchar code
+    varchar name
+    boolean active
+  }
+  APP_ROLE {
+    uuid id PK
+    varchar code UK
+  }
+  APP_USER {
+    uuid id PK
+    uuid organization_id FK
+    uuid branch_id FK "nullable, admin"
+    uuid role_id FK
+    varchar email UK
+    varchar password_hash
+    boolean active
+  }
+  CATEGORY {
+    uuid id PK
+    uuid organization_id FK
+    varchar code
+    varchar name
+  }
+  UNIT_OF_MEASURE {
+    uuid id PK
+    varchar code UK
+    varchar symbol
+  }
+  PRODUCT {
+    uuid id PK
+    uuid organization_id FK
+    uuid category_id FK
+    uuid unit_id FK
+    uuid parent_product_id FK "self, 1 nivel"
+    varchar sku UK
+    varchar barcode
+    boolean active
+  }
+  INVENTORY {
+    uuid id PK
+    uuid branch_id FK
+    uuid product_id FK
+    decimal quantity
+    decimal minimum_stock
+    decimal average_cost
+    int version
+  }
+  INVENTORY_ADJUSTMENT {
+    uuid id PK
+    uuid branch_id FK
+    uuid created_by FK
+    uuid approved_by FK
+    varchar reason
+  }
+  INVENTORY_ADJUSTMENT_ITEM {
+    uuid id PK
+    uuid adjustment_id FK
+    uuid product_id FK
+    decimal quantity_delta
+  }
+  INVENTORY_MOVEMENT {
+    uuid id PK
+    uuid inventory_id FK
+    varchar movement_type
+    uuid user_id FK
+    decimal quantity
+    decimal unit_cost
+    uuid purchase_order_id FK
+    uuid sale_id FK
+    uuid transfer_id FK
+    uuid adjustment_id FK
+  }
+  INVENTORY_ALERT {
+    uuid id PK
+    uuid inventory_id FK
+    varchar alert_type
+    varchar status
+    decimal triggered_quantity
+  }
+  SUPPLIER {
+    uuid id PK
+    uuid organization_id FK
+    varchar code
+  }
+  PURCHASE_ORDER {
+    uuid id PK
+    uuid branch_id FK
+    uuid supplier_id FK
+    uuid created_by FK
+    varchar status
+    varchar order_number
+  }
+  PURCHASE_ORDER_ITEM {
+    uuid id PK
+    uuid purchase_order_id FK
+    uuid product_id FK
+    decimal quantity
+    decimal received_quantity
+    decimal unit_price
+  }
+  PRICE_LIST {
+    uuid id PK
+    uuid organization_id FK
+    varchar code
+    date valid_from
+    date valid_until
+  }
+  PRODUCT_PRICE {
+    uuid id PK
+    uuid price_list_id FK
+    uuid product_id FK
+    decimal price
+  }
+  SALE {
+    uuid id PK
+    uuid branch_id FK
+    uuid created_by FK
+    uuid price_list_id FK
+    varchar status
+    varchar sale_number
+  }
+  SALE_ITEM {
+    uuid id PK
+    uuid sale_id FK
+    uuid product_id FK
+    decimal quantity
+    decimal unit_price
+  }
+  CARRIER {
+    uuid id PK
+    uuid organization_id FK
+    varchar code
+  }
+  LOGISTICS_ROUTE {
+    uuid id PK
+    uuid organization_id FK
+    uuid origin_branch_id FK
+    uuid destination_branch_id FK
+    int estimated_duration_minutes
+  }
+  TRANSFER {
+    uuid id PK
+    varchar transfer_number UK
+    uuid origin_branch_id FK
+    uuid destination_branch_id FK
+    uuid requested_by FK
+    uuid approved_by FK
+    varchar status
+    varchar priority
+    uuid carrier_id FK
+    uuid route_id FK
+  }
+  TRANSFER_ITEM {
+    uuid id PK
+    uuid transfer_id FK
+    uuid product_id FK
+    decimal requested_quantity
+    decimal approved_quantity
+    decimal shipped_quantity
+    decimal received_quantity
+  }
+  TRANSFER_STATUS_HISTORY {
+    uuid id PK
+    uuid transfer_id FK
+    varchar status
+    uuid changed_by FK
+  }
+  TRANSFER_ISSUE {
+    uuid id PK
+    uuid transfer_item_id FK
+    varchar issue_type
+    varchar resolution_type
+    decimal quantity
+    uuid reported_by FK
+    uuid resolved_by FK
+  }

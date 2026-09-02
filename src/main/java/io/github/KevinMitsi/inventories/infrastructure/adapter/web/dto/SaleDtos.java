@@ -41,17 +41,13 @@ public final class SaleDtos {
 
             @Schema(description = "Líneas de la venta; al menos una.", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotEmpty(message = "La venta debe tener al menos una línea.")
-            @Valid
-            List<ItemRequest> items
+            List<@Valid ItemRequest> items
     ) {
         @Schema(name = "SaleItemRequest")
         public record ItemRequest(
 
                 @NotNull(message = "El producto de la línea es obligatorio.")
                 UUID productId,
-
-                @NotNull(message = "La presentación de la línea es obligatoria.")
-                UUID productUnitId,
 
                 @NotNull(message = "La cantidad de la línea es obligatoria.")
                 @Positive(message = "La cantidad debe ser mayor que cero.")
@@ -77,7 +73,7 @@ public final class SaleDtos {
     ) {
         @Schema(name = "SaleItemResponse")
         public record ItemResponse(
-                UUID id, UUID productId, UUID productUnitId, BigDecimal quantity, BigDecimal unitPrice,
+                UUID id, UUID productId, BigDecimal quantity, BigDecimal unitPrice,
                 BigDecimal discountPercentage
         ) {
         }

@@ -16,6 +16,8 @@ public final class InventoryAlertDtos {
     public record InventoryAlertResponse(
             @Schema(description = "Identificador de la alerta.") UUID id,
             @Schema(description = "Saldo que la disparó.") UUID inventoryId,
+            @Schema(description = "Sucursal del saldo que la disparó.") UUID branchId,
+            @Schema(description = "Producto del saldo que la disparó.") UUID productId,
             @Schema(description = "Tipo de alerta.", example = "LOW_STOCK") String alertType,
             @Schema(description = "Estado.", example = "OPEN") String status,
             @Schema(description = "Cantidad disponible en el momento de dispararse.") BigDecimal triggeredQuantity,

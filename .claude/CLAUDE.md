@@ -110,7 +110,8 @@ relationship overview (`docs/ENTITIES.md` §4) is:
 ```text
 ORGANIZATION ──< BRANCH ──< USER >── ROLE
                        ├──< INVENTORY >── PRODUCT ── CATEGORY
-                       │                       └──< PRODUCT_UNIT >── UNIT_OF_MEASURE
+                       │                       ├── UNIT_OF_MEASURE
+                       │                       └──< PRODUCT (variantes, parent_product_id)
                        ├──< INVENTORY_MOVEMENT
                        ├──< PURCHASE_ORDER >── SUPPLIER ──< PURCHASE_ORDER_ITEM >── PRODUCT
                        ├──< SALE ──< SALE_ITEM >── PRODUCT
@@ -121,9 +122,18 @@ Plus: `PRICE_LIST >── PRODUCT_PRICE`, `CARRIER ──< TRANSFER`, `LOGISTICS
 `INVENTORY ──< INVENTORY_ALERT`.
 
 Core entities to implement first (per `PHASE1.md` §33): `Organization, Branch, User, Role, Product, Category,
-UnitOfMeasure, ProductUnit, Inventory, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem, Sale, SaleItem,
+UnitOfMeasure, Inventory, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem, Sale, SaleItem,
 Transfer, TransferItem, TransferStatusHistory`. Second-level: `PriceList, ProductPrice, Carrier, LogisticsRoute,
 TransferIssue`.
+
+`ProductUnit` and conversion factors were removed in migration `V3` (see
+`docs/PHASE6-CATALOGO-VARIANTES.md`): a product is counted in exactly one unit
+(`product.unit_id`, immutable after creation), and a different presentation of the same
+article is a **variant** — a full product of its own with its own SKU, stock and price,
+linked by `product.parent_product_id`. The catalog is one level deep: a variant cannot have
+variants. `sale_item`, `purchase_order_item`, `transfer_item` and `product_price` lost their
+`product_unit_id` column accordingly. `docs/ENTITIES.md` still describes the pre-`V3` design
+in its normalization sections and marks them as superseded; `PHASE6` wins on the catalog.
 
 ### Non-negotiable domain invariants (see `PHASE1.md` §22 for the full list)
 

@@ -1,15 +1,13 @@
 package io.github.KevinMitsi.inventories.infrastructure.adapter.web.mapper;
 
-import io.github.KevinMitsi.inventories.application.port.in.command.AddProductUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeBaseUnitCommand;
-import io.github.KevinMitsi.inventories.application.port.in.command.ChangeProductUnitFactorCommand;
+import io.github.KevinMitsi.inventories.application.port.in.command.AddProductVariantCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateCategoryCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.CreateProductCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateCategoryCommand;
 import io.github.KevinMitsi.inventories.application.port.in.command.UpdateProductCommand;
+import io.github.KevinMitsi.inventories.application.port.in.result.ProductFamily;
 import io.github.KevinMitsi.inventories.domain.model.Category;
 import io.github.KevinMitsi.inventories.domain.model.Product;
-import io.github.KevinMitsi.inventories.domain.model.ProductUnit;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.CategoryDtos;
 import io.github.KevinMitsi.inventories.infrastructure.adapter.web.dto.ProductDtos;
@@ -18,7 +16,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
-import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
@@ -44,8 +42,11 @@ public interface CatalogWebMapper {
     @Mapping(target = "barcode", source = "request.barcode")
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "description", source = "request.description")
-    @Mapping(target = "baseUnitId", source = "request.baseUnitId")
+    @Mapping(target = "unitOfMeasureId", source = "request.unitOfMeasureId")
+    @Mapping(target = "variants", source = "request.variants")
     CreateProductCommand toCommand(UUID organizationId, ProductDtos.CreateProductRequest request);
+
+    CreateProductCommand.Variant toVariant(ProductDtos.ProductVariantRequest request);
 
     @Mapping(target = "productId", source = "productId")
     @Mapping(target = "categoryId", source = "request.categoryId")
@@ -54,26 +55,20 @@ public interface CatalogWebMapper {
     @Mapping(target = "description", source = "request.description")
     UpdateProductCommand toCommand(UUID productId, ProductDtos.UpdateProductRequest request);
 
-    @Mapping(target = "productId", source = "productId")
+    @Mapping(target = "parentProductId", source = "parentProductId")
+    @Mapping(target = "sku", source = "request.sku")
+    @Mapping(target = "barcode", source = "request.barcode")
+    @Mapping(target = "name", source = "request.name")
+    @Mapping(target = "description", source = "request.description")
+    @Mapping(target = "categoryId", source = "request.categoryId")
     @Mapping(target = "unitOfMeasureId", source = "request.unitOfMeasureId")
-    @Mapping(target = "conversionFactor", source = "request.conversionFactor")
-    AddProductUnitCommand toCommand(UUID productId, ProductDtos.AddProductUnitRequest request);
-
-    @Mapping(target = "productId", source = "productId")
-    @Mapping(target = "newBaseProductUnitId", source = "request.newBaseProductUnitId")
-    @Mapping(target = "previousBaseNewFactor", source = "request.previousBaseNewFactor")
-    ChangeBaseUnitCommand toCommand(UUID productId, ProductDtos.ChangeBaseUnitRequest request);
-
-    default ChangeProductUnitFactorCommand toFactorCommand(UUID productId,
-                                                           UUID productUnitId,
-                                                           BigDecimal conversionFactor) {
-        return new ChangeProductUnitFactorCommand(productId, productUnitId, conversionFactor);
-    }
+    AddProductVariantCommand toCommand(UUID parentProductId, ProductDtos.ProductVariantRequest request);
 
     ProductDtos.ProductResponse toResponse(Product product);
 
-    @Mapping(target = "unit", source = "unit")
-    ProductDtos.ProductUnitResponse toResponse(ProductUnit productUnit);
+    List<ProductDtos.ProductResponse> toResponses(List<Product> products);
+
+    ProductDtos.ProductFamilyResponse toResponse(ProductFamily family);
 
     ProductDtos.UnitOfMeasureResponse toResponse(UnitOfMeasure unit);
 }
