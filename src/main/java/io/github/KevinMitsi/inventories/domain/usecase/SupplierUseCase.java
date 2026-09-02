@@ -9,6 +9,7 @@ import io.github.KevinMitsi.inventories.application.port.in.command.UpdateSuppli
 import io.github.KevinMitsi.inventories.application.port.in.query.SupplierSearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.SupplierRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import io.github.KevinMitsi.inventories.domain.model.Supplier;
@@ -16,6 +17,7 @@ import io.github.KevinMitsi.inventories.domain.model.Supplier;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class SupplierUseCase implements ManageSupplierUseCase, QuerySupplierUseCase {
 
     private static final Logger log = Logger.getLogger(SupplierUseCase.class.getName());

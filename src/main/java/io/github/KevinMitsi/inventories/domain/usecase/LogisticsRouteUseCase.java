@@ -10,6 +10,7 @@ import io.github.KevinMitsi.inventories.application.port.in.query.LogisticsRoute
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.LogisticsRouteRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.LogisticsRoute;
 import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class LogisticsRouteUseCase implements ManageLogisticsRouteUseCase, QueryLogisticsRouteUseCase {
 
     private static final Logger log = Logger.getLogger(LogisticsRouteUseCase.class.getName());

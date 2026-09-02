@@ -12,6 +12,7 @@ import io.github.KevinMitsi.inventories.application.port.out.OrganizationReposit
 import io.github.KevinMitsi.inventories.application.port.out.PriceListRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductPriceRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.Money;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -23,6 +24,7 @@ import io.github.KevinMitsi.inventories.domain.model.ProductPrice;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class PriceListUseCase implements ManagePriceListUseCase, QueryPriceListUseCase {
 
     private static final Logger log = Logger.getLogger(PriceListUseCase.class.getName());

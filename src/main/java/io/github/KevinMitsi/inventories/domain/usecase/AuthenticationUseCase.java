@@ -9,12 +9,14 @@ import io.github.KevinMitsi.inventories.application.port.out.PasswordHasherPort;
 import io.github.KevinMitsi.inventories.application.port.out.TokenClaims;
 import io.github.KevinMitsi.inventories.application.port.out.TokenProviderPort;
 import io.github.KevinMitsi.inventories.application.port.out.UserRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.User;
 
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class AuthenticationUseCase implements AuthenticateUserUseCase {
 
     private static final Logger log = Logger.getLogger(AuthenticationUseCase.class.getName());

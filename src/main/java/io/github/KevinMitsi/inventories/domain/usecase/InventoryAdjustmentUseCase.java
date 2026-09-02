@@ -6,6 +6,7 @@ import io.github.KevinMitsi.inventories.application.port.in.command.CreateInvent
 import io.github.KevinMitsi.inventories.application.port.out.BranchRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.InventoryAdjustmentRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAdjustment;
 import io.github.KevinMitsi.inventories.domain.model.InventoryAdjustmentItem;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class InventoryAdjustmentUseCase implements ManageInventoryAdjustmentUseCase {
 
     private static final Logger log = Logger.getLogger(InventoryAdjustmentUseCase.class.getName());

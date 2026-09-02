@@ -18,6 +18,7 @@ import io.github.KevinMitsi.inventories.application.port.out.ProductRepositoryPo
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferStatusHistoryRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.DomainValidationException;
 import io.github.KevinMitsi.inventories.domain.model.Inventory;
 import io.github.KevinMitsi.inventories.domain.model.InventoryMovementType;
@@ -43,6 +44,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+@AuditedUseCase
 public class TransferUseCase implements ManageTransferUseCase, QueryTransferUseCase {
 
     private static final Logger log = Logger.getLogger(TransferUseCase.class.getName());

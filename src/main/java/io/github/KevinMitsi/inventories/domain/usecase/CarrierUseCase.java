@@ -9,6 +9,7 @@ import io.github.KevinMitsi.inventories.application.port.in.command.UpdateCarrie
 import io.github.KevinMitsi.inventories.application.port.in.query.CarrierSearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.CarrierRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Carrier;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
 import io.github.KevinMitsi.inventories.domain.model.PageResult;
@@ -16,6 +17,7 @@ import io.github.KevinMitsi.inventories.domain.model.PageResult;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class CarrierUseCase implements ManageCarrierUseCase, QueryCarrierUseCase {
 
     private static final Logger log = Logger.getLogger(CarrierUseCase.class.getName());

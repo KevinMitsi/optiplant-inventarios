@@ -9,6 +9,7 @@ import io.github.KevinMitsi.inventories.application.port.in.command.UpdateCatego
 import io.github.KevinMitsi.inventories.application.port.in.query.CategorySearchCriteria;
 import io.github.KevinMitsi.inventories.application.port.out.CategoryRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.OrganizationRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.exception.BusinessRuleViolationException;
 import io.github.KevinMitsi.inventories.domain.model.Category;
 import io.github.KevinMitsi.inventories.domain.model.PageQuery;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@AuditedUseCase
 public class CategoryUseCase implements ManageCategoryUseCase, QueryCategoryUseCase {
 
     private static final Logger log = Logger.getLogger(CategoryUseCase.class.getName());

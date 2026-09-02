@@ -6,6 +6,7 @@ import io.github.KevinMitsi.inventories.application.port.in.QueryTransferIssueUs
 import io.github.KevinMitsi.inventories.application.port.in.command.ResolveTransferIssueCommand;
 import io.github.KevinMitsi.inventories.application.port.out.TransferIssueRepositoryPort;
 import io.github.KevinMitsi.inventories.application.port.out.TransferRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.Transfer;
 import io.github.KevinMitsi.inventories.domain.model.TransferIssue;
 import io.github.KevinMitsi.inventories.domain.model.TransferIssueResolution;
@@ -20,6 +21,7 @@ import java.util.logging.Logger;
  * además de {@link TransferIssueRepositoryPort} por una sola razón: al resolver la última
  * incidencia pendiente de una transferencia, esta cierra esa transferencia ({@code CLOSED}).
  */
+@AuditedUseCase
 public class TransferIssueUseCase implements ManageTransferIssueUseCase, QueryTransferIssueUseCase {
 
     private static final Logger log = Logger.getLogger(TransferIssueUseCase.class.getName());

@@ -3,11 +3,13 @@ package io.github.KevinMitsi.inventories.domain.usecase;
 import io.github.KevinMitsi.inventories.application.exception.ResourceNotFoundException;
 import io.github.KevinMitsi.inventories.application.port.in.QueryUnitOfMeasureUseCase;
 import io.github.KevinMitsi.inventories.application.port.out.UnitOfMeasureRepositoryPort;
+import io.github.KevinMitsi.inventories.domain.annotation.AuditedUseCase;
 import io.github.KevinMitsi.inventories.domain.model.UnitOfMeasure;
 
 import java.util.List;
 import java.util.UUID;
 
+@AuditedUseCase
 public class UnitOfMeasureUseCase implements QueryUnitOfMeasureUseCase {
 
     private static final String UNIT = "la unidad de medida";
